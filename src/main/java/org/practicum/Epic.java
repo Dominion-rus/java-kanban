@@ -27,7 +27,7 @@ public class Epic extends Task{
         boolean allNew = true;
 
         if (subtaskIds.isEmpty() || subtasks.isEmpty()) {
-            this.status = Status.NEW;
+            this.setStatus(Status.NEW);
             return;
         }
         for (Subtask subtask : subtasks) {
@@ -41,21 +41,21 @@ public class Epic extends Task{
             }
         }
         if (allDone) {
-            this.status = Status.DONE;
+            this.setStatus(Status.DONE);
         } else if (allNew) {
-            this.status = Status.NEW;
+            this.setStatus(Status.NEW);
         } else {
-            this.status = Status.IN_PROGRESS;
+            this.setStatus(Status.IN_PROGRESS);
         }
     }
 
     @Override
     public String toString() {
         return "Epic{" +
-                "id=" + id +
-                ", title='" + title + '\'' +
-                ", description='" + description + '\'' +
-                ", status=" + status +
+                "id=" + getId() +
+                ", title='" + getTitle() + '\'' +
+                ", description='" + getDescription() + '\'' +
+                ", status=" + getStatus() +
                 ", subtaskIds=" + subtaskIds +
                 '}';
     }

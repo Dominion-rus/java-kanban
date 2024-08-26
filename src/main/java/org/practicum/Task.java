@@ -7,10 +7,10 @@ import java.util.Objects;
  * @author vsmordvincev
  */
 public class Task {
-    protected int id;
-    protected String title;
-    protected String description;
-    protected Status status;
+    private int id;
+    private String title;
+    private String description;
+    private Status status;
 
       public Task(String title, String description, Status status) {
         this.title = title;
@@ -28,6 +28,14 @@ public class Task {
 
     public Status getStatus() {
         return status;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     public void setStatus(Status status) {
