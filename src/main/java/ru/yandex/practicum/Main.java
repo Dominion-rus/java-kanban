@@ -1,6 +1,13 @@
-package org.practicum;
+package ru.yandex.practicum;
+
+import ru.yandex.practicum.model.Epic;
+import ru.yandex.practicum.model.Status;
+import ru.yandex.practicum.model.Subtask;
+import ru.yandex.practicum.model.Task;
+import ru.yandex.practicum.service.TaskTracker;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author vsmordvincev
@@ -16,7 +23,7 @@ public class Main {
         tracker.addTask(task2);
 
         // Создание эпика
-        Epic epic = new Epic("Переезд", "Организация переезда", Status.NEW);
+        Epic epic = new Epic("Переезд", "Организация переезда");
         int epicId = tracker.addTask(epic);
 
         // Создание подзадач
@@ -26,17 +33,26 @@ public class Main {
         Subtask subtask2 = new Subtask("Аренда грузовика", "Арендовать грузовик для перевозки", Status.NEW, epicId);
         tracker.addTask(subtask2);
 
-        // Печать всех задач
+        // Печать всех задач после их добавления
         System.out.println("\nВсе задачи после их добавления:");
-        tracker.printAllTasks();
+        List<Task> allTasks = tracker.getAllTasks();
+        for (Task task : allTasks) {
+            System.out.println(task);
+        }
 
-        // Печать всех эпиков
+        // Печать всех эпиков после их добавления
         System.out.println("\nВсе эпики после их добавления:");
-        tracker.printAllEpics();
+        List<Epic> allEpics = tracker.getAllEpics();
+        for (Epic e : allEpics) {
+            System.out.println(e);
+        }
 
-        // Печать всех подзадач
+        // Печать всех подзадач после их добавления
         System.out.println("\nВсе подзадачи после их добавления:");
-        tracker.printAllSubtasks();
+        List<Subtask> allSubtasks = tracker.getAllSubtasks();
+        for (Subtask s : allSubtasks) {
+            System.out.println(s);
+        }
 
         // Обновление статуса подзадачи
         subtask1.setStatus(Status.IN_PROGRESS);
@@ -44,7 +60,13 @@ public class Main {
 
         // Печать состояния эпика и подзадач после обновления статуса первой подзадачи
         System.out.println("\nПосле обновления статуса первой подзадачи:");
-        tracker.printEpicAndSubtasks(epicId);
+        Map<Epic, List<Subtask>> epicAndSubtasks = tracker.getEpicAndSubtasks(epicId);
+        for (Map.Entry<Epic, List<Subtask>> entry : epicAndSubtasks.entrySet()) {
+            System.out.println(entry.getKey());
+            for (Subtask subtask : entry.getValue()) {
+                System.out.println("  " + subtask);
+            }
+        }
 
         // Завершение всех подзадач
         subtask1.setStatus(Status.DONE);
@@ -54,7 +76,13 @@ public class Main {
 
         // Печать состояния эпика после завершения всех подзадач
         System.out.println("\nПосле завершения всех подзадач:");
-        tracker.printEpicAndSubtasks(epicId);
+        epicAndSubtasks = tracker.getEpicAndSubtasks(epicId);
+        for (Map.Entry<Epic, List<Subtask>> entry : epicAndSubtasks.entrySet()) {
+            System.out.println(entry.getKey());
+            for (Subtask subtask : entry.getValue()) {
+                System.out.println("  " + subtask);
+            }
+        }
 
         // Использование метода getTaskById
         System.out.println("\nПолучение задачи по ID:");
@@ -63,7 +91,7 @@ public class Main {
 
         // Печать всех задач с использованием метода getAllTasks
         System.out.println("\nВсе задачи с использованием getAllTasks:");
-        List<Task> allTasks = tracker.getAllTasks();
+        allTasks = tracker.getAllTasks();
         for (Task task : allTasks) {
             System.out.println(task);
         }
@@ -73,15 +101,21 @@ public class Main {
 
         // Печать всех задач после удаления первой задачи
         System.out.println("\nВсе задачи после удаления первой задачи:");
-        tracker.printAllTasks();
+        allTasks = tracker.getAllTasks();
+        for (Task task : allTasks) {
+            System.out.println(task);
+        }
 
-        // Удаление всех задач
+        // Удаление всех эпиков и подзадач
+        tracker.removeAllEpics();
+        tracker.removeAllSubtasks();
         tracker.removeAllTasks();
 
         // Печать всех задач после удаления всех задач
         System.out.println("\nВсе задачи после удаления всех задач:");
-        tracker.printAllTasks();
+        allTasks = tracker.getAllTasks();
+        for (Task task : allTasks) {
+            System.out.println(task);
+        }
     }
-
-
 }

@@ -1,4 +1,4 @@
-package org.practicum;
+package ru.yandex.practicum.model;
 
 /**
  * @author vsmordvincev
