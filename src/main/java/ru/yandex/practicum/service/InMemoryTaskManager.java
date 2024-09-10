@@ -10,22 +10,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author vsmordvincev
- */
-public class TaskTracker {
-    private final Map<Integer, Task> tasks;
-    private final Map<Integer, Subtask> subtasks;
-    private final Map<Integer, Epic> epics;
-    private int nextId;
+public class InMemoryTaskManager implements TaskManager{
 
-    public TaskTracker() {
-        this.tasks = new HashMap<>();
-        this.subtasks = new HashMap<>();
-        this.epics = new HashMap<>();
-        this.nextId = 1;
+    private final Map<Integer, Task> tasks = new HashMap<>();
+    private final Map<Integer, Epic> epics = new HashMap<>();
+    private final Map<Integer, Subtask> subtasks = new HashMap<>();
+    private final HistoryManager historyManager;
+    private int nextId = 1;
+
+
+    public InMemoryTaskManager(HistoryManager historyManager) {
+        this.historyManager = historyManager;
     }
 
+    @Override
     public int addTask(Task task) {
         task.setId(nextId++);
         if (task instanceof Subtask) {
@@ -42,16 +40,29 @@ public class TaskTracker {
         return task.getId();
     }
 
+    @Override
     public Task getTaskById(int id) {
-        if (tasks.containsKey(id)) {
-            return tasks.get(id);
-        } else if (subtasks.containsKey(id)) {
-            return subtasks.get(id);
+        Task task = tasks.get(id);
+        if (task != null) {
+            historyManager.add(task);  // Добавляем обычную задачу в историю
+            return task;
         } else {
-            return epics.get(id);
+            Subtask subtask = subtasks.get(id);
+            if (subtask != null) {
+                historyManager.add(subtask);  // Добавляем подзадачу в историю
+                return subtask;
+            } else {
+                Epic epic = epics.get(id);
+                if (epic != null) {
+                    historyManager.add(epic);  // Добавляем эпик в историю
+                    return epic;
+                }
+            }
         }
+        return null;  // Возвращаем null, если задача не найдена
     }
 
+    @Override
     public List<Task> getAllTasks() {
         List<Task> allTasks = new ArrayList<>(tasks.values());
         allTasks.addAll(subtasks.values());
@@ -59,6 +70,7 @@ public class TaskTracker {
         return allTasks;
     }
 
+    @Override
     public void removeTaskById(int id) {
         if (tasks.remove(id) == null) {
             Subtask subtask = subtasks.remove(id);
@@ -78,11 +90,13 @@ public class TaskTracker {
     }
 
     // Метод для удаления всех обычных задач
+    @Override
     public void removeAllTasks() {
         tasks.clear();
     }
 
     // Метод для удаления всех эпиков и связанных с ними подзадач
+    @Override
     public void removeAllEpics() {
         // Удаляем все подзадачи, связанные с эпиками
         for (Epic epic : epics.values()) {
@@ -94,6 +108,7 @@ public class TaskTracker {
     }
 
     // Метод для удаления всех подзадач и обновления статусов эпиков
+    @Override
     public void removeAllSubtasks() {
         // Для каждого эпика очищаем список подзадач и обновляем статус
         for (Epic epic : epics.values()) {
@@ -103,6 +118,7 @@ public class TaskTracker {
         subtasks.clear();
     }
 
+    @Override
     public void updateTask(Task updatedTask) {
         if (updatedTask instanceof Subtask) {
             Subtask subtask = (Subtask) updatedTask;
@@ -116,6 +132,7 @@ public class TaskTracker {
         }
     }
 
+    @Override
     public List<Subtask> getSubtasksForEpic(int epicId) {
         List<Subtask> subtasksForEpic = new ArrayList<>();
         for (Integer subtaskId : epics.get(epicId).getSubtaskIds()) {
@@ -125,26 +142,31 @@ public class TaskTracker {
     }
 
     // Метод для обновления статуса эпика
+
     private void epicUpdateStatus(Subtask subtask) {
         Epic epic = epics.get(subtask.getEpicId());
         updateEpicStatus(epic);
     }
+
 
     private void epicUpdateStatus(Epic epic) {
         updateEpicStatus(epic);
     }
 
     // Возвращает список всех эпиков
+    @Override
     public List<Epic> getAllEpics() {
         return new ArrayList<>(epics.values());
     }
 
     // Возвращает список всех подзадач
+    @Override
     public List<Subtask> getAllSubtasks() {
         return new ArrayList<>(subtasks.values());
     }
 
     // Возвращает эпик и его подзадачи в виде Map
+    @Override
     public Map<Epic, List<Subtask>> getEpicAndSubtasks(int epicId) {
         Map<Epic, List<Subtask>> epicAndSubtasks = new HashMap<>();
         Epic epic = epics.get(epicId);
@@ -154,6 +176,13 @@ public class TaskTracker {
         }
         return epicAndSubtasks;
     }
+
+    @Override
+    public List<Task> getHistory() {
+        return historyManager.getHistory();
+    }
+
+
 
     private void updateEpicStatus(Epic epic) {
         boolean allDone = true;
@@ -183,6 +212,5 @@ public class TaskTracker {
             epic.setStatus(Status.IN_PROGRESS);
         }
     }
+
 }
-
-
