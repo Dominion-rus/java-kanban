@@ -1,6 +1,6 @@
+package ru.yandex.practicum.model;
+
 import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.model.Status;
-import ru.yandex.practicum.model.Task;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

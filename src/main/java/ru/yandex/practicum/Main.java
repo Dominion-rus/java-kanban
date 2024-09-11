@@ -17,8 +17,7 @@ import static ru.yandex.practicum.utils.PrintManager.printEpicWithSubtasks;
  */
 public class Main {
     public static void main(String[] args) {
-        HistoryManager historyManager = Managers.getDefaultHistory();
-        TaskManager tracker = new InMemoryTaskManager(historyManager);
+        TaskManager tracker = Managers.getDefault();
 
         // Создание обычных задач
         Task task1 = new Task("Сходить в магазин", "Купить продукты", Status.NEW);

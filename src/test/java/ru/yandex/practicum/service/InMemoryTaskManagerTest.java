@@ -1,12 +1,12 @@
+package ru.yandex.practicum.service;
+
+import jdk.jfr.Description;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.model.Epic;
 import ru.yandex.practicum.model.Status;
 import ru.yandex.practicum.model.Subtask;
 import ru.yandex.practicum.model.Task;
-import ru.yandex.practicum.service.HistoryManager;
-import ru.yandex.practicum.service.InMemoryHistoryManager;
-import ru.yandex.practicum.service.InMemoryTaskManager;
 
 import java.util.List;
 
@@ -32,7 +32,6 @@ class InMemoryTaskManagerTest {
         assertNotNull(retrievedTask, "Task должен быть notNull");
         assertEquals(task, retrievedTask, "Извлеченный task должен соответствовать добавленному task.");
     }
-
     @Test
     void testAddAndGetEpic() {
         Epic epic = new Epic("Test Epic", "Epic Description");
@@ -43,7 +42,6 @@ class InMemoryTaskManagerTest {
         assertNotNull(retrievedEpic, "Epic должен быть notNull");
         assertEquals(epic, retrievedEpic, "Извлеченный epic должен соответствовать добавленному epic.");
     }
-
     @Test
     void testSubtaskCannotBeItsOwnEpic() {
         Epic epic = new Epic("Test Epic", "Epic Description");
@@ -54,7 +52,6 @@ class InMemoryTaskManagerTest {
 
         assertNotEquals(epicId, subtaskId, "Идентификатор подзадачи не должен совпадать с идентификатором Epic.");
     }
-
 
     @Test
     void testRemoveTask() {
@@ -127,4 +124,61 @@ class InMemoryTaskManagerTest {
         assertEquals("Description", fetchedTask.getDescription(), "Описание задачи не должно меняться.");
         assertEquals(Status.NEW, fetchedTask.getStatus(), "Статус задачи не должен меняться.");
     }
+
+    @Test
+    @Description("TaskManagerTest")
+    void historyManagerIntegration() {
+        HistoryManager historyManager = new InMemoryHistoryManager();
+        TaskManager taskManager = new InMemoryTaskManager(historyManager);
+        Task task = new Task("Task", "Description", Status.NEW);
+        int taskId = taskManager.addTask(task);
+
+        taskManager.getTaskById(taskId);
+
+        assertEquals(1, historyManager.getHistory().size(), "История должна содержать одну задачу.");
+        assertEquals(task, historyManager.getHistory().get(0), "Историческая задача должна " +
+                "соответствовать найденной задаче.");
+    }
+
+    @Test
+    @Description("TaskManagerTest")
+    void taskEqualityById() {
+
+        Task task1 = new Task("Task 1", "Description 1", Status.NEW);
+        Task task2 = new Task("Task 2", "Description 2", Status.NEW);
+        int task1Id = taskManager.addTask(task1);
+        int task2Id = taskManager.addTask(task2);
+
+        assertEquals(task1, taskManager.getTaskById(task1Id), "Задачи должны быть одинаковыми" +
+                " по идентификатору.");
+        assertEquals(task2, taskManager.getTaskById(task2Id), "Задачи должны быть одинаковыми" +
+                " по идентификатору.");
+    }
+
+    @Test
+    @Description("TaskManagerTest")
+    void subtaskCannotBeItsOwnEpic() {
+
+        Epic epic = new Epic("Epic", "Description");
+        int epicId = taskManager.addTask(epic);
+
+        Subtask subtask = new Subtask("Subtask", "Description", Status.NEW, epicId);
+        int subtaskId = taskManager.addTask(subtask);
+
+        assertNotEquals(epicId, subtaskId, "Эпик не может быть самостоятельной подзадачей.");
+    }
+
+
+    @Test
+    @Description("TaskManagerTest")
+    void taskIdUniqueness() {
+
+        Task task1 = new Task("Task 1", "Description 1", Status.NEW);
+        Task task2 = new Task("Task 2", "Description 2", Status.NEW);
+        int task1Id = taskManager.addTask(task1);
+        int task2Id = taskManager.addTask(task2);
+
+        assertNotEquals(task1Id, task2Id, "Задачи с разным содержанием должны иметь разные идентификаторы.");
+    }
+
 }
