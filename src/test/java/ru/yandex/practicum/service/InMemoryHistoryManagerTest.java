@@ -1,10 +1,10 @@
 package ru.yandex.practicum.service;
 
 import jdk.jfr.Description;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.model.Status;
 import ru.yandex.practicum.model.Task;
-import org.junit.jupiter.api.BeforeEach;
 
 import java.util.List;
 
