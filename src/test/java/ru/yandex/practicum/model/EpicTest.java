@@ -1,7 +1,6 @@
+package ru.yandex.practicum.model;
+
 import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.model.Epic;
-import ru.yandex.practicum.model.Status;
-import ru.yandex.practicum.model.Subtask;
 
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 public class EpicTest {

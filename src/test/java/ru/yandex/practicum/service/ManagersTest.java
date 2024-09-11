@@ -1,5 +1,6 @@
+package ru.yandex.practicum.service;
+
 import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.service.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
