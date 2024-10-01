@@ -32,6 +32,7 @@ class InMemoryTaskManagerTest {
         assertNotNull(retrievedTask, "Task должен быть notNull");
         assertEquals(task, retrievedTask, "Извлеченный task должен соответствовать добавленному task.");
     }
+
     @Test
     void testAddAndGetEpic() {
         Epic epic = new Epic("Test Epic", "Epic Description");
@@ -42,6 +43,7 @@ class InMemoryTaskManagerTest {
         assertNotNull(retrievedEpic, "Epic должен быть notNull");
         assertEquals(epic, retrievedEpic, "Извлеченный epic должен соответствовать добавленному epic.");
     }
+
     @Test
     void testSubtaskCannotBeItsOwnEpic() {
         Epic epic = new Epic("Test Epic", "Epic Description");
