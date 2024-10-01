@@ -181,4 +181,78 @@ class InMemoryTaskManagerTest {
         assertNotEquals(task1Id, task2Id, "Задачи с разным содержанием должны иметь разные идентификаторы.");
     }
 
+    @Test
+    void testRemoveSubtaskShouldUpdateEpic() {
+        Epic epic = new Epic("Test Epic", "Epic Description");
+        int epicId = taskManager.addTask(epic);
+        Subtask subtask = new Subtask("Test Subtask", "Subtask Description", Status.NEW, epicId);
+        taskManager.addTask(subtask);
+
+        taskManager.removeTaskById(subtask.getId());
+
+        Epic updatedEpic = taskManager.getAllEpics().get(0);
+        assertTrue(updatedEpic.getSubtaskIds().isEmpty(), "После удаления подзадачи у эпика не должно быть подзадач.");
+    }
+
+    @Test
+    void testRemoveEpicShouldRemoveItsSubtasks() {
+        Epic epic = new Epic("Test Epic", "Epic Description");
+        int epicId = taskManager.addTask(epic);
+        Subtask subtask1 = new Subtask("Subtask 1", "Description 1", Status.NEW, epicId);
+        Subtask subtask2 = new Subtask("Subtask 2", "Description 2", Status.NEW, epicId);
+        taskManager.addTask(subtask1);
+        taskManager.addTask(subtask2);
+
+        taskManager.removeTaskById(epicId);
+
+        assertTrue(taskManager.getAllSubtasks().isEmpty(), "Подзадачи должны быть удалены вместе с эпиком.");
+    }
+
+    @Test
+    void testRemoveAllTasksAndEpicsShouldClearData() {
+        Task task = new Task("Test Task", "Task Description", Status.NEW);
+        taskManager.addTask(task);
+        Epic epic = new Epic("Test Epic", "Epic Description");
+        int epicId = taskManager.addTask(epic);
+        Subtask subtask = new Subtask("Test Subtask", "Subtask Description", Status.NEW, epicId);
+        taskManager.addTask(subtask);
+
+        taskManager.removeAllTasks();
+        taskManager.removeAllEpics();
+
+        assertTrue(taskManager.getAllTasks().isEmpty(), "Все задачи должны быть удалены.");
+        assertTrue(taskManager.getAllEpics().isEmpty(), "Все эпики должны быть удалены.");
+        assertTrue(taskManager.getAllSubtasks().isEmpty(), "Все подзадачи должны быть удалены.");
+    }
+
+    @Test
+    void testIdUniquenessAfterTaskRemoval() {
+        Task task1 = new Task("Task 1", "Description 1", Status.NEW);
+        int task1Id = taskManager.addTask(task1);
+
+        taskManager.removeTaskById(task1Id);
+
+        Task task2 = new Task("Task 2", "Description 2", Status.NEW);
+        int task2Id = taskManager.addTask(task2);
+
+        assertNotEquals(task1Id, task2Id, "ID новой задачи не должен совпадать с ID удалённой задачи.");
+    }
+
+    @Test
+    void testRemoveAllSubtasksShouldUpdateEpics() {
+        Epic epic = new Epic("Test Epic", "Epic Description");
+        int epicId = taskManager.addTask(epic);
+        Subtask subtask1 = new Subtask("Subtask 1", "Description 1", Status.NEW, epicId);
+        Subtask subtask2 = new Subtask("Subtask 2", "Description 2", Status.NEW, epicId);
+        taskManager.addTask(subtask1);
+        taskManager.addTask(subtask2);
+
+        taskManager.removeAllSubtasks();
+
+        Epic updatedEpic = taskManager.getAllEpics().get(0);
+        assertTrue(updatedEpic.getSubtaskIds().isEmpty(), "Подзадачи должны быть удалены из эпика.");
+        assertEquals(Status.NEW, updatedEpic.getStatus(), "Статус эпика должен быть обновлен на NEW.");
+    }
 }
+
+
