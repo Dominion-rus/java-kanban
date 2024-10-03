@@ -19,8 +19,10 @@ public class InMemoryHistoryManager implements HistoryManager {
         Node<T> next;
         Node<T> prev;
 
-        Node(T value) {
+        Node(T value, Node<T> prev, Node<T> next) {
             this.value = value;
+            this.prev = prev;
+            this.next = next;
         }
     }
 
@@ -53,15 +55,13 @@ public class InMemoryHistoryManager implements HistoryManager {
     }
 
     private void linkLast(Task task) {
-        Node<Task> newNode = new Node<>(task);
+        final Node<Task> newNode = new Node<>(task, tail, null);
         if (tail == null) {
             head = newNode;
-            tail = newNode;
         } else {
             tail.next = newNode;
-            newNode.prev = tail;
-            tail = newNode;
         }
+        tail = newNode;
         // Сохраняем задачу в хэш-таблице для быстрого доступа
         taskMap.put(task.getId(), newNode);
     }
