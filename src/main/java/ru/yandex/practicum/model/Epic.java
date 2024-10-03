@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * @author vsmordvincev
  */
-public class Epic extends Task{
+public class Epic extends Task {
     private final List<Integer> subtaskIds;
 
     public Epic(String title, String description) {
