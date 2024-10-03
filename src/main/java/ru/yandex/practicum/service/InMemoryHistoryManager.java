@@ -37,14 +37,13 @@ public class InMemoryHistoryManager implements HistoryManager {
     public void remove(int id) {
         // Получаем узел с задачей по id
         Node<Task> node = taskMap.remove(id);
-        if (node != null) {
-            removeNode(node);
-        }
+        removeNode(node);
+
     }
 
     @Override
     public List<Task> getHistory() {
-        List<Task> history = new ArrayList<>();
+        List<Task> history = new ArrayList<>(taskMap.size());
         Node<Task> current = head;
         while (current != null) {
             history.add(current.value);
@@ -72,15 +71,19 @@ public class InMemoryHistoryManager implements HistoryManager {
         if (node == null) {
             return;
         }
-        if (node.prev != null) {
-            node.prev.next = node.next;
+
+        Node<Task> prevNode = node.prev;
+        Node<Task> nextNode = node.next;
+
+        if (prevNode != null) {
+            prevNode.next = nextNode;
         } else {
-            head = node.next;
+            head = nextNode;
         }
-        if (node.next != null) {
-            node.next.prev = node.prev;
+        if (nextNode != null) {
+            nextNode.prev = prevNode;
         } else {
-            tail = node.prev;
+            tail = prevNode;
         }
     }
 }
