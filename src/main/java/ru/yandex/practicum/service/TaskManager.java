@@ -21,15 +21,15 @@ public interface TaskManager {
 
     List<Subtask> getAllSubtasks(); // Получение всех подзадач
 
-    void removeTaskById(int id); // Удаление задачи по ID
+    void removeTaskById(int id) ; // Удаление задачи по ID
 
-    void removeAllTasks(); // Удаление всех задач
+    void removeAllTasks() ; // Удаление всех задач
 
-    void removeAllEpics(); // Удаление всех эпиков
+    void removeAllEpics() ; // Удаление всех эпиков
 
-    void removeAllSubtasks(); // Удаление всех подзадач
+    void removeAllSubtasks() ; // Удаление всех подзадач
 
-    void updateTask(Task updatedTask); // Обновление задачи
+    void updateTask(Task updatedTask) ; // Обновление задачи
 
     List<Subtask> getSubtasksForEpic(int epicId); // Получение подзадач эпика
 
