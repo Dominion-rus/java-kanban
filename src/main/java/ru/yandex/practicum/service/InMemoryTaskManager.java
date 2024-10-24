@@ -22,22 +22,36 @@ public class InMemoryTaskManager implements TaskManager {
         this.historyManager = historyManager;
     }
 
+    public HistoryManager getHistoryManager() {
+        return historyManager;
+    }
+
+
     @Override
     public int addTask(Task task) {
         task.setId(nextId++);
+        addTaskWithPredefinedId(task);
+        return task.getId();
+    }
+
+
+    protected void addTaskWithPredefinedId(Task task) {
         if (task instanceof Subtask) {
             Subtask subtask = (Subtask) task;
             subtasks.put(task.getId(), subtask);
             Epic epic = epics.get(subtask.getEpicId());
-            epic.addSubtask(subtask.getId());
-            updateEpicStatus(epic);
+            if (epic != null) {
+                epic.addSubtask(subtask.getId());
+                updateEpicStatus(epic);
+            }
         } else if (task instanceof Epic) {
             epics.put(task.getId(), (Epic) task);
         } else {
             tasks.put(task.getId(), task);
         }
-        return task.getId();
     }
+
+
 
     @Override
     public Task getTaskById(int id) {
@@ -183,7 +197,7 @@ public class InMemoryTaskManager implements TaskManager {
 
 
 
-    private void updateEpicStatus(Epic epic) {
+    protected void updateEpicStatus(Epic epic) {
         boolean allDone = true;
         boolean allNew = true;
 
@@ -212,4 +226,33 @@ public class InMemoryTaskManager implements TaskManager {
         }
     }
 
+
+    public Epic getEpicById(int epicId) {
+        return epics.get(epicId);
+    }
+
+    public Map<Integer, Task> getTasks() {
+        return new HashMap<>(tasks);
+    }
+
+    public Map<Integer, Epic> getEpics() {
+        return new HashMap<>(epics);
+    }
+
+    public Map<Integer, Subtask> getSubtasks() {
+        return new HashMap<>(subtasks);
+    }
+
+    public int addEpic(Epic epic) {
+        return addTask(epic);
+    }
+
+    public int addSubtask(Subtask subtask) {
+        return addTask(subtask);
+    }
+
+
+    protected void setNextId(int nextId) {
+        this.nextId = nextId;
+    }
 }
