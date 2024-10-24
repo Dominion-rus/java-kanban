@@ -49,8 +49,6 @@ class FileBackedTaskManagerTest {
 
         taskManager.save();
 
-        printFileContents(tempFile); // для отладки, удалить
-
         HistoryManager historyManager = new InMemoryHistoryManager();
         FileBackedTaskManager loadedTaskManager = new FileBackedTaskManager(tempFile, historyManager);
 
@@ -93,21 +91,52 @@ class FileBackedTaskManagerTest {
         // Сохранение в файл
         taskManager.save();
 
-        printFileContents(tempFile); // для отладки, удалить
 
         // Загрузка из файла
         HistoryManager historyManager = new InMemoryHistoryManager();
         FileBackedTaskManager loadedTaskManager = new FileBackedTaskManager(tempFile, historyManager);
 
         // Проверка задач
-        assertEquals(1, loadedTaskManager.getAllTasks().size(), "Должна быть одна задача.");
+        assertEquals(1, loadedTaskManager.getTasks().size(), "Должна быть одна задача.");
         assertEquals(1, loadedTaskManager.getAllEpics().size(), "Должен быть один эпик.");
         assertEquals(1, loadedTaskManager.getAllSubtasks().size(), "Должна быть одна подзадача.");
 
         // Проверка идентификаторов
-        assertEquals(task1.getId(), loadedTaskManager.getAllTasks().get(0).getId(), "ID задачи должен совпадать.");
-        assertEquals(epic1.getId(), loadedTaskManager.getAllEpics().get(0).getId(), "ID эпика должен совпадать.");
-        assertEquals(subtask1.getId(), loadedTaskManager.getAllSubtasks().get(0).getId(), "ID подзадачи должен совпадать.");
+        assertEquals(task1.getId(), loadedTaskManager.getTasks().get(1).getId(), "ID задачи" +
+                " должен совпадать.");
+        assertEquals(epic1.getId(), loadedTaskManager.getAllEpics().get(0).getId(), "ID эпика " +
+                "должен совпадать.");
+        assertEquals(epic1.getSubtaskIds(), loadedTaskManager.getAllEpics().get(0).getSubtaskIds(), "Subtasks" +
+                " эпика должен совпадать.");
+        assertEquals(subtask1.getId(), loadedTaskManager.getAllSubtasks().get(0).getId(), "ID подзадачи " +
+                "должен совпадать.");
+    }
+
+    @Test
+    public void testShouldPreserveMaxId() throws Exception {
+
+        // Создание задач
+        Task task1 = new Task("Task 1", "Description 1", Status.NEW);
+        Epic epic1 = new Epic("Epic 1", "Epic Description");
+        taskManager.addTask(task1);  // Сначала добавляем задачу
+        taskManager.addTask(epic1);   // Затем добавляем эпик
+
+        // Теперь, когда эпик добавлен, мы можем получить его ID
+        Subtask subtask1 = new Subtask("Subtask 1", "Subtask Description", Status.NEW, epic1.getId());
+        taskManager.addTask(subtask1); // Добавляем подзадачу, используя ID эпика
+
+        // Сохранение в файл
+        taskManager.save();
+
+        printFileContents(tempFile);
+
+        // Загрузка из файла
+        HistoryManager historyManager = new InMemoryHistoryManager();
+        FileBackedTaskManager loadedTaskManager = new FileBackedTaskManager(tempFile, historyManager);
+
+        Task newTask = new Task("New task", "New description", Status.NEW);
+        loadedTaskManager.addTask(newTask);
+        assertEquals(newTask, loadedTaskManager.getTaskById(4));
     }
 
 

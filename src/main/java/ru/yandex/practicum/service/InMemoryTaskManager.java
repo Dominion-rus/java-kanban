@@ -30,19 +30,28 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public int addTask(Task task) {
         task.setId(nextId++);
+        addTaskWithPredefinedId(task);
+        return task.getId();
+    }
+
+
+    protected void addTaskWithPredefinedId(Task task) {
         if (task instanceof Subtask) {
             Subtask subtask = (Subtask) task;
             subtasks.put(task.getId(), subtask);
             Epic epic = epics.get(subtask.getEpicId());
-            epic.addSubtask(subtask.getId());
-            updateEpicStatus(epic);
+            if (epic != null) {
+                epic.addSubtask(subtask.getId());
+                updateEpicStatus(epic);
+            }
         } else if (task instanceof Epic) {
             epics.put(task.getId(), (Epic) task);
         } else {
             tasks.put(task.getId(), task);
         }
-        return task.getId();
     }
+
+
 
     @Override
     public Task getTaskById(int id) {
@@ -235,22 +244,15 @@ public class InMemoryTaskManager implements TaskManager {
     }
 
     public int addEpic(Epic epic) {
-        epic.setId(nextId++);
-        epics.put(epic.getId(), epic);
-        return epic.getId();
+        return addTask(epic);
     }
 
     public int addSubtask(Subtask subtask) {
-        subtask.setId(nextId++);
-        subtasks.put(subtask.getId(), subtask);
-        Epic epic = epics.get(subtask.getEpicId());
-
-        if (epic != null) {
-            epic.addSubtask(subtask.getId());
-            updateEpicStatus(epic);
-        }
-
-        return subtask.getId();
+        return addTask(subtask);
     }
 
+
+    protected void setNextId(int nextId) {
+        this.nextId = nextId;
+    }
 }
