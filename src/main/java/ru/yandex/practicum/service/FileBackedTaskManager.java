@@ -130,7 +130,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                     }
                 }
             }
-            setNextId(maxId+1);
+            setNextId(maxId + 1);
         } catch (IOException e) {
             throw new ManagerLoadException("Ошибка чтения данных из файла: " + file.getName(), e);
         }
