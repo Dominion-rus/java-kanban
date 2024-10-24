@@ -1,15 +1,20 @@
 package ru.yandex.practicum.service;
 
+import ru.yandex.practicum.exceptions.ManagerLoadException;
+import ru.yandex.practicum.exceptions.ManagerSaveException;
 import ru.yandex.practicum.model.*;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 
 public class FileBackedTaskManager extends InMemoryTaskManager {
     private final File file;
+
+    private static final String CSV_HEADER = "id,type,name,status,description,epic";
 
     public FileBackedTaskManager(File file, HistoryManager historyManager) {
         super(historyManager);
@@ -18,77 +23,136 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
     void save() {
-        try (BufferedWriter writer = Files.newBufferedWriter(file.toPath())) {
+        try (BufferedWriter writer = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8)) {
             // Записываем заголовки
-            writer.write("id,type,name,status,description,epic");
+            writer.write(CSV_HEADER);
             writer.newLine();
 
             // Записываем все задачи
             for (Task task : getAllTasks()) {
-                writer.write(toString(task));
+                writer.write(taskToString(task));
                 writer.newLine();
             }
             for (Epic epic : getAllEpics()) {
-                writer.write(toString(epic));
+                writer.write(taskToString(epic));
                 writer.newLine();
             }
             for (Subtask subtask : getAllSubtasks()) {
-                writer.write(toString(subtask));
+                writer.write(taskToString(subtask));
                 writer.newLine();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new ManagerSaveException("Ошибка сохранения данных в файл: " + file.getName(), e);
+
         }
     }
 
-    private String toString(Task task) {
-        return String.format("%d,%s,%s,%s,%s,", task.getId(), TaskType.TASK, task.getTitle(), task.getStatus(),
-                task.getDescription());
-
+    @Override
+    public int addTask(Task task) {
+        int taskId = super.addTask(task);
+        save();
+        return taskId;
     }
 
-    private String toString(Epic epic) {
-        return String.format("%d,%s,%s,%s,%s,", epic.getId(), TaskType.EPIC, epic.getTitle(), epic.getStatus(),
-                epic.getDescription());
-
+    @Override
+    public void updateTask(Task updatedTask) {
+        super.updateTask(updatedTask);
+        save();
     }
 
-    private String toString(Subtask subtask) {
-        return String.format("%d,%s,%s,%s,%d", subtask.getId(), TaskType.SUBTASK, subtask.getTitle(),
-                subtask.getStatus(), subtask.getDescription(), subtask.getEpicId());
-
+    @Override
+    public void removeTaskById(int id) {
+        super.removeTaskById(id);
+        save();
     }
 
-        void loadFromFile() {
-            if (!file.exists()) {
-                return; // Если файл не существует, просто выходим
-            }
+    @Override
+    public void removeAllTasks() {
+        super.removeAllTasks();
+        save();
+    }
 
-            try {
-                List<String> lines = Files.readAllLines(file.toPath());
-                // Проверяем, есть ли строки для обработки
-                if (lines.size() > 1) {
-                    for (String line : lines.subList(1, lines.size())) {
-                        Task task = fromString(line);
-                        if (task instanceof Epic) {
-                            addTask(task);
-                        } else if (task instanceof Subtask) {
-                            Subtask subtask = (Subtask) task;
-                            Epic epic = getEpicById(subtask.getEpicId());
-                            if (epic != null) {
-                                addTask(subtask); // Добавляем подзадачу только если эпик существует
-                            } else {
-                                // Обработка ошибки: эпик не найден
-                                System.err.println("Epic with ID " + subtask.getEpicId() + " not found for subtask "
-                                        + subtask.getId());
-                            }
-                        } else if (!(task instanceof Epic)) {
-                            addTask(task);
+    private String taskToString(Task task) {
+        StringBuilder result = new StringBuilder();
+        result.append(task.getId()).append(",");
+
+        if (task instanceof Subtask) {
+            Subtask subtask = (Subtask) task;
+            result.append(TaskType.SUBTASK).append(",");
+            result.append(subtask.getTitle()).append(",");
+            result.append(subtask.getStatus()).append(",");
+            result.append(subtask.getDescription()).append(",");
+            result.append(subtask.getEpicId()); // Для подзадачи добавляем Epic ID
+        } else if (task instanceof Epic) {
+            result.append(TaskType.EPIC).append(",");
+            result.append(task.getTitle()).append(",");
+            result.append(task.getStatus()).append(",");
+            result.append(task.getDescription());
+            // Epic не имеет Epic ID, поэтому просто записываем его поля
+        } else {
+            result.append(TaskType.TASK).append(",");
+            result.append(task.getTitle()).append(",");
+            result.append(task.getStatus()).append(",");
+            result.append(task.getDescription());
+        }
+
+        return result.toString();
+    }
+
+    void loadFromFile() {
+        if (!file.exists()) {
+            return; // Если файл не существует, просто выходим
+        }
+
+        try {
+            List<String> lines = Files.readAllLines(file.toPath());
+
+            // Проверяем, есть ли строки для обработки
+            if (lines.size() > 1) {
+                for (String line : lines.subList(1, lines.size())) {
+                    Task task = fromString(line);
+                    System.out.println("Загруженная задача: " + task);
+
+                    switch (task.getType()) {
+                        /*
+                            case EPIC:
+                                getEpics().put(task.getId(), (Epic) task);
+                                break;
+
+                            case SUBTASK:
+                                Subtask subtask = (Subtask) task;
+                                Epic epic = getEpicById(subtask.getEpicId());
+
+                                if (epic != null) {
+                                    getSubtasks().put(subtask.getId(), subtask);
+                                    epic.addSubtask(subtask.getId());
+                                    updateEpicStatus(epic);
+                                } else {
+                                    throw new ManagerLoadException("Epic with ID " + subtask.getEpicId() +
+                                            " not found for subtask " + subtask.getId());
+                                }
+                                break;
+
+                            case TASK:
+                                getTasks().put(task.getId(), task);
+                                break;
+                        */
+                        case TASK:
+                            getTasks().put(task.getId(), (Task) task);
+                            break;
+                        case EPIC:
+                            getEpics().put(task.getId(), (Epic) task);
+                            break;
+                        case SUBTASK:
+                            getSubtasks().put(task.getId(), (Subtask) task);
+                            break;
+                            default:
+                                throw new ManagerLoadException("Нe известный тип задачи: " + task.getType());
                         }
                     }
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                throw new ManagerLoadException("Ошибка чтения данных из файла: " + file.getName(), e);
             }
         }
 
@@ -99,18 +163,38 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         String name = parts[2];
         Status status = Status.valueOf(parts[3].trim());
         String description = parts[4];
-        int epicId = parts.length > 5 ? Integer.parseInt(parts[5]) : -1; // Если эпик, то получаем id, иначе -1
+        int epicId = -1;
 
         // Создание задачи в зависимости от типа
         switch (type) {
             case TASK:
-                return new Task(name, description, status);
+                Task task = new Task(name, description, status);
+                task.setId(id);
+                return task;
             case EPIC:
-                return new Epic(name, description);
+                Epic epic = new Epic(name, description);
+                epic.setId(id);
+                epic.setStatus(status);
+                return epic;
             case SUBTASK:
-                return new Subtask(name, description, status, epicId);
+                // Для подзадачи получаем epicId, если он присутствует
+                if (parts.length > 5) {
+                    epicId = Integer.parseInt(parts[5]);
+                }
+                Subtask subtask = new Subtask(name, description, status, epicId);
+                subtask.setId(id);
+                return subtask;
             default:
                 throw new IllegalArgumentException("Неизвестный тип задачи: " + type);
         }
+    }
+
+    private TaskType getType(Task task) {
+        if (task instanceof Epic) {
+            return TaskType.EPIC;
+        } else if (task instanceof Subtask) {
+            return TaskType.SUBTASK;
+        }
+        return TaskType.TASK;
     }
 }
