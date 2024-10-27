@@ -36,19 +36,26 @@ public class InMemoryTaskManager implements TaskManager {
 
 
     protected void addTaskWithPredefinedId(Task task) {
-        if (task instanceof Subtask) {
-            Subtask subtask = (Subtask) task;
-            subtasks.put(task.getId(), subtask);
-            Epic epic = epics.get(subtask.getEpicId());
-            if (epic != null) {
-                epic.addSubtask(subtask.getId());
-                updateEpicStatus(epic);
-            }
-        } else if (task instanceof Epic) {
-            epics.put(task.getId(), (Epic) task);
-        } else {
-            tasks.put(task.getId(), task);
+        switch (task.getType()) {
+            case SUBTASK:
+                Subtask subtask = (Subtask) task;
+                subtasks.put(task.getId(), subtask);
+                Epic epic = epics.get(subtask.getEpicId());
+                if (epic != null) {
+                    epic.addSubtask(subtask.getId());
+                    updateEpicStatus(epic);
+                }
+                break;
+            case EPIC:
+                epics.put(task.getId(), (Epic) task);
+                break;
+            case TASK:
+                tasks.put(task.getId(), task);
+                break;
+            default:
+                throw new IllegalArgumentException("Неизвестный тип задачи: " + task.getType());
         }
+
     }
 
 

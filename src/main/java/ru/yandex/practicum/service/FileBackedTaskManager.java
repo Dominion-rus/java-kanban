@@ -72,28 +72,47 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         save();
     }
 
-    private String taskToString(Task task) {
-        StringBuilder result = new StringBuilder();
-        result.append(task.getId()).append(",");
+    @Override
+    public void removeAllEpics() {
+        super.removeAllEpics();
+        save();
+    }
 
-        if (task instanceof Subtask) {
+    @Override
+    public void removeAllSubtasks() {
+        super.removeAllSubtasks();
+        save();
+    }
+
+    @Override
+    public int addEpic(Epic epic) {
+        int epicId = super.addEpic(epic);
+        save();
+        return epicId;
+    }
+
+    @Override
+    public int addSubtask(Subtask subtask) {
+        int subtaskId = super.addSubtask(subtask);
+        save();
+        return subtaskId;
+    }
+
+    private String taskToString(Task task) {
+        final TaskType type = task.getType();
+        StringBuilder result = new StringBuilder();
+
+        // Записываем общие поля для всех типов задач
+        result.append(task.getId()).append(",");
+        result.append(type).append(",");
+        result.append(task.getTitle()).append(",");
+        result.append(task.getStatus()).append(",");
+        result.append(task.getDescription());
+
+        // Добавляем Epic ID, если задача — подзадача
+        if (type == TaskType.SUBTASK) {
             Subtask subtask = (Subtask) task;
-            result.append(TaskType.SUBTASK).append(",");
-            result.append(subtask.getTitle()).append(",");
-            result.append(subtask.getStatus()).append(",");
-            result.append(subtask.getDescription()).append(",");
-            result.append(subtask.getEpicId()); // Для подзадачи добавляем Epic ID
-        } else if (task instanceof Epic) {
-            result.append(TaskType.EPIC).append(",");
-            result.append(task.getTitle()).append(",");
-            result.append(task.getStatus()).append(",");
-            result.append(task.getDescription());
-            // Epic не имеет Epic ID, поэтому просто записываем его поля
-        } else {
-            result.append(TaskType.TASK).append(",");
-            result.append(task.getTitle()).append(",");
-            result.append(task.getStatus()).append(",");
-            result.append(task.getDescription());
+            result.append(",").append(subtask.getEpicId());
         }
 
         return result.toString();
@@ -170,12 +189,4 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         }
     }
 
-    private TaskType getType(Task task) {
-        if (task instanceof Epic) {
-            return TaskType.EPIC;
-        } else if (task instanceof Subtask) {
-            return TaskType.SUBTASK;
-        }
-        return TaskType.TASK;
-    }
 }
