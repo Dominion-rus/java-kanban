@@ -22,22 +22,43 @@ public class InMemoryTaskManager implements TaskManager {
         this.historyManager = historyManager;
     }
 
+    public HistoryManager getHistoryManager() {
+        return historyManager;
+    }
+
+
     @Override
     public int addTask(Task task) {
         task.setId(nextId++);
-        if (task instanceof Subtask) {
-            Subtask subtask = (Subtask) task;
-            subtasks.put(task.getId(), subtask);
-            Epic epic = epics.get(subtask.getEpicId());
-            epic.addSubtask(subtask.getId());
-            updateEpicStatus(epic);
-        } else if (task instanceof Epic) {
-            epics.put(task.getId(), (Epic) task);
-        } else {
-            tasks.put(task.getId(), task);
-        }
+        addTaskWithPredefinedId(task);
         return task.getId();
     }
+
+
+    protected void addTaskWithPredefinedId(Task task) {
+        switch (task.getType()) {
+            case SUBTASK:
+                Subtask subtask = (Subtask) task;
+                subtasks.put(task.getId(), subtask);
+                Epic epic = epics.get(subtask.getEpicId());
+                if (epic != null) {
+                    epic.addSubtask(subtask.getId());
+                    updateEpicStatus(epic);
+                }
+                break;
+            case EPIC:
+                epics.put(task.getId(), (Epic) task);
+                break;
+            case TASK:
+                tasks.put(task.getId(), task);
+                break;
+            default:
+                throw new IllegalArgumentException("Неизвестный тип задачи: " + task.getType());
+        }
+
+    }
+
+
 
     @Override
     public Task getTaskById(int id) {
@@ -183,7 +204,7 @@ public class InMemoryTaskManager implements TaskManager {
 
 
 
-    private void updateEpicStatus(Epic epic) {
+    protected void updateEpicStatus(Epic epic) {
         boolean allDone = true;
         boolean allNew = true;
 
@@ -212,4 +233,33 @@ public class InMemoryTaskManager implements TaskManager {
         }
     }
 
+
+    protected Epic getEpicById(int epicId) {
+        return epics.get(epicId);
+    }
+
+    protected Map<Integer, Task> getTasks() {
+        return new HashMap<>(tasks);
+    }
+
+    protected Map<Integer, Epic> getEpics() {
+        return new HashMap<>(epics);
+    }
+
+    protected Map<Integer, Subtask> getSubtasks() {
+        return new HashMap<>(subtasks);
+    }
+
+    protected int addEpic(Epic epic) {
+        return addTask(epic);
+    }
+
+    protected int addSubtask(Subtask subtask) {
+        return addTask(subtask);
+    }
+
+
+    protected void setNextId(int nextId) {
+        this.nextId = nextId;
+    }
 }
