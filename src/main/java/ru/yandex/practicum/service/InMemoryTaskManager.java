@@ -234,27 +234,27 @@ public class InMemoryTaskManager implements TaskManager {
     }
 
 
-    public Epic getEpicById(int epicId) {
+    protected Epic getEpicById(int epicId) {
         return epics.get(epicId);
     }
 
-    public Map<Integer, Task> getTasks() {
+    protected Map<Integer, Task> getTasks() {
         return new HashMap<>(tasks);
     }
 
-    public Map<Integer, Epic> getEpics() {
+    protected Map<Integer, Epic> getEpics() {
         return new HashMap<>(epics);
     }
 
-    public Map<Integer, Subtask> getSubtasks() {
+    protected Map<Integer, Subtask> getSubtasks() {
         return new HashMap<>(subtasks);
     }
 
-    public int addEpic(Epic epic) {
+    protected int addEpic(Epic epic) {
         return addTask(epic);
     }
 
-    public int addSubtask(Subtask subtask) {
+    protected int addSubtask(Subtask subtask) {
         return addTask(subtask);
     }
 
