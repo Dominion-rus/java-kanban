@@ -1,5 +1,7 @@
 package ru.yandex.practicum.model;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 
@@ -11,11 +13,15 @@ public class Task {
     private final String title;
     private final String description;
     private Status status;
+    private Duration duration;
+    private LocalDateTime startTime;
 
-      public Task(String title, String description, Status status) {
+      public Task(String title, String description, Status status, Duration duration, LocalDateTime startTime) {
         this.title = title;
         this.description = description;
         this.status = status;
+        this.duration = duration;
+        this.startTime = startTime;
     }
 
     public int getId() {
@@ -44,6 +50,26 @@ public class Task {
 
     public TaskType getType() {
         return TaskType.TASK;
+    }
+
+    public Duration getDuration() {
+        return duration;
+    }
+
+    public void setDuration(Duration duration) {
+        this.duration = duration;
+    }
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public LocalDateTime getEndTime() {
+        return startTime.plus(duration);
     }
 
       public String toString() {

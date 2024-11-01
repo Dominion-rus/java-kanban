@@ -10,10 +10,13 @@ import ru.yandex.practicum.model.Task;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.nio.file.Files;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FileBackedTaskManagerTest {
 
@@ -41,9 +44,9 @@ class FileBackedTaskManagerTest {
     }
 
     @Test
-    void testSaveAndLoadMultipleTasks() throws IOException {
-        Task task1 = new Task("Task 1", "Description 1", Status.NEW);
-        Task task2 = new Task("Task 2", "Description 2", Status.NEW);
+    void testSaveAndLoadMultipleTasks() {
+        Task task1 = new Task("Task 1", "Description 1", Status.NEW, Duration.ofMinutes(30), LocalDateTime.of(2024, 11, 1, 9, 0));
+        Task task2 = new Task("Task 2", "Description 2", Status.NEW, Duration.ofMinutes(15), LocalDateTime.of(2024, 11, 1, 10, 0));
         taskManager.addTask(task1);
         taskManager.addTask(task2);
 
@@ -64,7 +67,7 @@ class FileBackedTaskManagerTest {
 
     @Test
     void testRemoveAllTasksAndCheckFileState() {
-        Task task1 = new Task("Task 1", "Description 1", Status.NEW);
+        Task task1 = new Task("Task 1", "Description 1", Status.NEW, Duration.ofMinutes(30), LocalDateTime.of(2024, 11, 1, 9, 0));
         taskManager.addTask(task1);
         taskManager.removeAllTasks();
 
@@ -77,15 +80,15 @@ class FileBackedTaskManagerTest {
     }
 
     @Test
-    void testSaveAndLoadAllTaskTypes() throws IOException {
+    void testSaveAndLoadAllTaskTypes() {
         // Создание задач
-        Task task1 = new Task("Task 1", "Description 1", Status.NEW);
+        Task task1 = new Task("Task 1", "Description 1", Status.NEW, Duration.ofMinutes(30), LocalDateTime.of(2024, 11, 1, 9, 0));
         Epic epic1 = new Epic("Epic 1", "Epic Description");
         taskManager.addTask(task1);  // Сначала добавляем задачу
         taskManager.addTask(epic1);   // Затем добавляем эпик
 
         // Теперь, когда эпик добавлен, мы можем получить его ID
-        Subtask subtask1 = new Subtask("Subtask 1", "Subtask Description", Status.NEW, epic1.getId());
+        Subtask subtask1 = new Subtask("Subtask 1", "Subtask Description", Status.NEW, epic1.getId(), Duration.ofMinutes(120), LocalDateTime.of(2024, 11, 1, 11, 0));
         taskManager.addTask(subtask1); // Добавляем подзадачу, используя ID эпика
 
         // Сохранение в файл
@@ -116,13 +119,13 @@ class FileBackedTaskManagerTest {
     public void testShouldPreserveMaxId() throws Exception {
 
         // Создание задач
-        Task task1 = new Task("Task 1", "Description 1", Status.NEW);
+        Task task1 = new Task("Task 1", "Description 1", Status.NEW, Duration.ofMinutes(30), LocalDateTime.of(2024, 11, 1, 9, 0));
         Epic epic1 = new Epic("Epic 1", "Epic Description");
         taskManager.addTask(task1);  // Сначала добавляем задачу
         taskManager.addTask(epic1);   // Затем добавляем эпик
 
         // Теперь, когда эпик добавлен, мы можем получить его ID
-        Subtask subtask1 = new Subtask("Subtask 1", "Subtask Description", Status.NEW, epic1.getId());
+        Subtask subtask1 = new Subtask("Subtask 1", "Subtask Description", Status.NEW, epic1.getId(), Duration.ofMinutes(120), LocalDateTime.of(2024, 11, 1, 11, 0));
         taskManager.addTask(subtask1); // Добавляем подзадачу, используя ID эпика
 
         // Сохранение в файл
@@ -134,10 +137,12 @@ class FileBackedTaskManagerTest {
         HistoryManager historyManager = new InMemoryHistoryManager();
         FileBackedTaskManager loadedTaskManager = new FileBackedTaskManager(tempFile, historyManager);
 
-        Task newTask = new Task("New task", "New description", Status.NEW);
+        Task newTask = new Task("New task", "New description", Status.NEW, Duration.ofMinutes(30), LocalDateTime.of(2024, 11, 1, 9, 0));
         loadedTaskManager.addTask(newTask);
         assertEquals(newTask, loadedTaskManager.getTaskById(4));
     }
+
+
 
 
     private void printFileContents(File file) throws IOException {
@@ -146,6 +151,27 @@ class FileBackedTaskManagerTest {
             System.out.println(line);
         }
     }
+
+    @Test
+    void testEmptyHistoryPreserved() {
+        taskManager.save();
+        FileBackedTaskManager loadedTaskManager = new FileBackedTaskManager(tempFile, new InMemoryHistoryManager());
+        assertTrue(loadedTaskManager.getHistory().isEmpty(), "История должна быть пустой после загрузки.");
+    }
+
+    @Test
+    void testPreventDuplicateTasksOnLoad() {
+        Task task = new Task("Task 1", "Description 1", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 9, 0));
+        taskManager.addTask(task);
+        taskManager.addTask(task); // Добавляем дублирующуюся задачу
+
+        taskManager.save();
+        FileBackedTaskManager loadedTaskManager = new FileBackedTaskManager(tempFile, new InMemoryHistoryManager());
+        assertEquals(1, loadedTaskManager.getTasks().size(),
+                "Должна быть только одна задача после загрузки, несмотря на дублирование.");
+    }
+
 
 
     @AfterEach

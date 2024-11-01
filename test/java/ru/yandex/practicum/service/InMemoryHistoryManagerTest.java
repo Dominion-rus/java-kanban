@@ -6,10 +6,11 @@ import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.model.Status;
 import ru.yandex.practicum.model.Task;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 class InMemoryHistoryManagerTest {
     private InMemoryHistoryManager historyManager;
@@ -21,7 +22,8 @@ class InMemoryHistoryManagerTest {
 
     @Test
     void testHistoryShouldContainTask() {
-        Task task = new Task("Task", "Description", Status.NEW);
+        Task task = new Task("Task", "Description", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 9, 0));
         task.setId(1);
         historyManager.add(task);
         assertEquals(1, historyManager.getHistory().size(), "История должна содержать одну задачу.");
@@ -32,7 +34,8 @@ class InMemoryHistoryManagerTest {
     @Test
     @Description("HistoryManagerTest")
     void testAdd() {
-        Task task = new Task("Сходить в магазин", "Купить продукты", Status.NEW);
+        Task task = new Task("Сходить в магазин", "Купить продукты", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 9, 0));
         task.setId(1);
         historyManager.add(task);
         final List<Task> history = historyManager.getHistory();
@@ -43,7 +46,8 @@ class InMemoryHistoryManagerTest {
 
     @Test
     void testAddDuplicateTaskToHistory() {
-        Task task1 = new Task("Task 1", "Description 1", Status.NEW);
+        Task task1 = new Task("Task 1", "Description 1", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 9, 0));
         task1.setId(1);
         historyManager.add(task1);
         historyManager.add(task1);
@@ -55,11 +59,14 @@ class InMemoryHistoryManagerTest {
 
     @Test
     void testMoveTaskToFrontOnDuplicateAdd() {
-        Task task1 = new Task("Task 1", "Description 1", Status.NEW);
+        Task task1 = new Task("Task 1", "Description 1", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 9, 0));
         task1.setId(1);
-        Task task2 = new Task("Task 2", "Description 2", Status.NEW);
+        Task task2 = new Task("Task 2", "Description 2", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 10, 0));
         task2.setId(2);
-        Task task3 = new Task("Task 3", "Description 3", Status.NEW);
+        Task task3 = new Task("Task 3", "Description 3", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 11, 0));
         task3.setId(3);
 
         historyManager.add(task1);
@@ -77,9 +84,11 @@ class InMemoryHistoryManagerTest {
 
     @Test
     void testRemoveTaskFromHistory() {
-        Task task1 = new Task("Task 1", "Description 1", Status.NEW);
+        Task task1 = new Task("Task 1", "Description 1", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 9, 0));
         task1.setId(1);
-        Task task2 = new Task("Task 2", "Description 2", Status.NEW);
+        Task task2 = new Task("Task 2", "Description 2", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 10, 0));
         task2.setId(2);
 
         historyManager.add(task1);
@@ -94,11 +103,14 @@ class InMemoryHistoryManagerTest {
 
     @Test
     void testRemoveMiddleTaskFromHistory() {
-        Task task1 = new Task("Task 1", "Description 1", Status.NEW);
+        Task task1 = new Task("Task 1", "Description 1", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 9, 0));
         task1.setId(1);
-        Task task2 = new Task("Task 2", "Description 2", Status.NEW);
+        Task task2 = new Task("Task 2", "Description 2", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 10, 0));
         task2.setId(2);
-        Task task3 = new Task("Task 3", "Description 3", Status.NEW);
+        Task task3 = new Task("Task 3", "Description 3", Status.NEW,
+                Duration.ofMinutes(30), LocalDateTime.of(2024, 11, 1, 11, 0));
         task3.setId(3);
 
         historyManager.add(task1);
@@ -115,11 +127,14 @@ class InMemoryHistoryManagerTest {
 
     @Test
     void testRemoveLastTaskFromHistory() {
-        Task task1 = new Task("Task 1", "Description 1", Status.NEW);
+        Task task1 = new Task("Task 1", "Description 1", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 9, 0));
         task1.setId(1);
-        Task task2 = new Task("Task 2", "Description 2", Status.NEW);
+        Task task2 = new Task("Task 2", "Description 2", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 10, 0));
         task2.setId(2);
-        Task task3 = new Task("Task 3", "Description 3", Status.NEW);
+        Task task3 = new Task("Task 3", "Description 3", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 11, 0));
         task3.setId(3);
 
         historyManager.add(task1);
@@ -136,11 +151,14 @@ class InMemoryHistoryManagerTest {
 
     @Test
     void testRemoveFirstTaskFromHistory() {
-        Task task1 = new Task("Task 1", "Description 1", Status.NEW);
+        Task task1 = new Task("Task 1", "Description 1", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 9, 0));
         task1.setId(1);
-        Task task2 = new Task("Task 2", "Description 2", Status.NEW);
+        Task task2 = new Task("Task 2", "Description 2", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 10, 0));
         task2.setId(2);
-        Task task3 = new Task("Task 3", "Description 3", Status.NEW);
+        Task task3 = new Task("Task 3", "Description 3", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 11, 0));
         task3.setId(3);
 
         historyManager.add(task1);
@@ -154,6 +172,47 @@ class InMemoryHistoryManagerTest {
         assertEquals(2, history.size(), "История должна содержать 2 задачи после удаления.");
         assertEquals(task2, history.get(0), "Задача task2 должна быть на первом месте.");
         assertEquals(task3, history.get(1), "Задача task3 должна быть на втором месте.");
+    }
+
+    @Test
+    void testRemoveNonExistentTask() {
+        Task task1 = new Task("Task 1", "Description 1", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 9, 0));
+        task1.setId(1);
+        historyManager.add(task1);
+
+        // Попытка удалить задачу, которой нет в истории
+        historyManager.remove(99);
+
+        List<Task> history = historyManager.getHistory();
+        assertEquals(1, history.size(), "История не должна измениться при удалении несуществующей задачи.");
+        assertEquals(task1, history.get(0), "Единственная задача в истории должна остаться неизменной.");
+    }
+
+    @Test
+    void testAddTaskWithNull() {
+        // Попытка добавить null в историю
+        historyManager.add(null);
+
+        List<Task> history = historyManager.getHistory();
+        assertTrue(history.isEmpty(), "История должна оставаться пустой при попытке добавления null.");
+    }
+
+    @Test
+    void testAddTasksWithSameId() {
+        Task task1 = new Task("Task 1", "Description 1", Status.NEW, Duration.ofMinutes(30),
+                LocalDateTime.of(2024, 11, 1, 9, 0));
+        task1.setId(1);
+        Task task2 = new Task("Task 2", "Description 2", Status.NEW, Duration.ofMinutes(45),
+                LocalDateTime.of(2024, 11, 1, 10, 0));
+        task2.setId(1); // Задача с тем же ID
+
+        historyManager.add(task1);
+        historyManager.add(task2);
+
+        List<Task> history = historyManager.getHistory();
+        assertEquals(1, history.size(), "История должна содержать только одну задачу с данным ID.");
+        assertEquals(task2, history.get(0), "Последняя добавленная задача с одинаковым ID должна быть в истории.");
     }
 
 }
