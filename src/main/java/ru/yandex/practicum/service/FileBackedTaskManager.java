@@ -228,7 +228,10 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                 // Для подзадачи получаем epicId, если он присутствует
                 if (parts.length > 7) {
                     epicId = Integer.parseInt(parts[7]);
+                } else {
+                throw new IllegalArgumentException("Отсутствует идентификатор эпика для подзадачи.");
                 }
+
                 Subtask subtask = new Subtask(name, description, status, epicId, duration, startTime);
                 subtask.setId(id);
                 return subtask;

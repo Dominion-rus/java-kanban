@@ -12,7 +12,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class InMemoryHistoryManagerTest {
+class InMemoryHistoryManagerTest  {
     private InMemoryHistoryManager historyManager;
 
     @BeforeEach
@@ -213,6 +213,13 @@ class InMemoryHistoryManagerTest {
         List<Task> history = historyManager.getHistory();
         assertEquals(1, history.size(), "История должна содержать только одну задачу с данным ID.");
         assertEquals(task2, history.get(0), "Последняя добавленная задача с одинаковым ID должна быть в истории.");
+    }
+
+    @Test
+    void testEmptyHistory() {
+        // Проверка на пустую историю задач
+        List<Task> history = historyManager.getHistory();
+        assertTrue(history.isEmpty(), "История задач должна быть пустой.");
     }
 
 }
