@@ -102,14 +102,18 @@ public class InMemoryTaskManager implements TaskManager {
             return;
         }
 
-        Duration totalDuration = Duration.ZERO;
+        Duration totalDuration = null;
         LocalDateTime earliestStartTime = null;
         LocalDateTime latestEndTime = null;
 
         // Рассчитываем общую продолжительность
         for (Subtask subtask : subtasks) {
             if (subtask.getDuration() != null) {
-                totalDuration = totalDuration.plus(subtask.getDuration());
+                if (totalDuration == null) {
+                    totalDuration = subtask.getDuration();
+                } else {
+                    totalDuration = totalDuration.plus(subtask.getDuration());
+                }
             }
 
             if (subtask.getStartTime() != null) {
@@ -166,33 +170,32 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void removeTaskById(int id) {
         // Удаление обычной задачи
-        if (tasks.remove(id) != null) {
-            Task task = tasks.get(id);
-            if (task != null) {
-                prioritizedTasks.remove(task); // Удаляем задачу из TreeSet
+        Task task = tasks.remove(id);
+        if (task != null) {
+            prioritizedTasks.remove(task); // Удаляем задачу из TreeSet
+            return;
+        }
+
+        // Удаление подзадачи
+        Subtask subtask = subtasks.remove(id);
+        if (subtask != null) {
+            prioritizedTasks.remove(subtask); // Удаляем подзадачу из TreeSet
+            Epic epic = epics.get(subtask.getEpicId());
+            if (epic != null) {
+                epic.removeSubtask(subtask.getId());
+                updateEpicStatus(epic);
+                updateEpicFields(epic); // Обновление полей эпика после удаления подзадачи
             }
-        } else {
-            // Удаление подзадачи
-            Subtask subtask = subtasks.remove(id);
-            if (subtask != null) {
-                prioritizedTasks.remove(subtask); // Удаляем подзадачу из TreeSet
-                Epic epic = epics.get(subtask.getEpicId());
-                if (epic != null) {
-                    epic.removeSubtask(subtask.getId());
-                    updateEpicStatus(epic);
-                    updateEpicFields(epic); // Обновление полей эпика после удаления подзадачи
-                }
-            } else {
-                // Удаление эпика и всех его подзадач
-                Epic epic = epics.remove(id);
-                if (epic != null) {
-                    prioritizedTasks.remove(epic); // Удаляем эпик из TreeSet
-                    for (Integer subtaskId : epic.getSubtaskIds()) {
-                        Subtask removedSubtask = subtasks.remove(subtaskId);
-                        if (removedSubtask != null) {
-                            prioritizedTasks.remove(removedSubtask); // Удаляем подзадачи из TreeSet
-                        }
-                    }
+            return;
+        }
+
+        // Удаление эпика и всех его подзадач
+        Epic epic = epics.remove(id);
+        if (epic != null) {
+            for (Integer subtaskId : epic.getSubtaskIds()) {
+                Subtask removedSubtask = subtasks.remove(subtaskId);
+                if (removedSubtask != null) {
+                    prioritizedTasks.remove(removedSubtask); // Удаляем подзадачи из TreeSet
                 }
             }
         }
@@ -234,11 +237,15 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void updateTask(Task updatedTask) {
         // Удаляем старую версию задачи из отсортированного списка
-        prioritizedTasks.remove(getTaskById(updatedTask.getId()));
+        Task oldTask = tasks.get(updatedTask.getId());
+        if (oldTask != null) {
+            prioritizedTasks.remove(oldTask);
+        }
 
         // Проверка на пересечение временных интервалов
         if (hasOverlappingTasks(updatedTask)) {
-            throw new IllegalArgumentException("Обновленная задача пересекается по времени выполнения с существующей задачей.");
+            throw new IllegalArgumentException("Обновленная задача пересекается по времени выполнения " +
+                    "с существующей задачей.");
         }
 
         // Обновляем задачу в зависимости от типа
