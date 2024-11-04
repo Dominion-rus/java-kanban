@@ -24,6 +24,15 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         loadFromFile();
     }
 
+    private void writeTaskString(BufferedWriter writer, String taskString, String taskType) {
+        try {
+            writer.write(taskString);
+            writer.newLine();
+        } catch (IOException e) {
+            throw new ManagerSaveException("Ошибка записи " + taskType + " в файл: " + file.getName(), e);
+        }
+    }
+
     void save() {
         try (BufferedWriter writer = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8)) {
             // Записываем заголовки
@@ -33,42 +42,20 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
             // Записываем все эпики
             getAllEpics().stream()
                     .map(this::taskToString)
-                    .forEach(taskString -> {
-                        try {
-                            writer.write(taskString);
-                            writer.newLine();
-                        } catch (IOException e) {
-                            throw new ManagerSaveException("Ошибка записи эпика в файл: " + file.getName(), e);
-                        }
-                    });
+                    .forEach(taskString -> writeTaskString(writer, taskString, "эпика"));
 
             // Записываем все задачи
             getTasks().values().stream()
                     .map(this::taskToString)
-                    .forEach(taskString -> {
-                        try {
-                            writer.write(taskString);
-                            writer.newLine();
-                        } catch (IOException e) {
-                            throw new ManagerSaveException("Ошибка записи задачи в файл: " + file.getName(), e);
-                        }
-                    });
+                    .forEach(taskString -> writeTaskString(writer, taskString, "задачи"));
 
             // Записываем все подзадачи
             getAllSubtasks().stream()
                     .map(this::taskToString)
-                    .forEach(taskString -> {
-                        try {
-                            writer.write(taskString);
-                            writer.newLine();
-                        } catch (IOException e) {
-                            throw new ManagerSaveException("Ошибка записи подзадачи в файл: " + file.getName(), e);
-                        }
-                    });
+                    .forEach(taskString -> writeTaskString(writer, taskString, "подзадачи"));
 
         } catch (IOException e) {
             throw new ManagerSaveException("Ошибка сохранения данных в файл: " + file.getName(), e);
-
         }
     }
 
@@ -133,8 +120,8 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                 .append(task.getTitle()).append(",")
                 .append(task.getStatus()).append(",")
                 .append(task.getDescription()).append(",")
-                .append(task.getDuration().toMinutes()).append(",")
-                .append(task.getStartTime());
+                .append(task.getDuration() != null ? task.getDuration().toMinutes() : "null").append(",")
+                .append(task.getStartTime() != null ? task.getStartTime() : "null");
 
         // Добавляем Epic ID, если задача — подзадача
         if (type == TaskType.SUBTASK) {
@@ -206,8 +193,14 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         String name = parts[2];
         Status status = Status.valueOf(parts[3].trim());
         String description = parts[4];
-        Duration duration = Duration.ofMinutes(Long.parseLong(parts[5]));
-        LocalDateTime startTime = LocalDateTime.parse(parts[6]);
+        Duration duration = null;
+        if (!"null".equals(parts[5])) {
+            duration = Duration.ofMinutes(Long.parseLong(parts[5]));
+        }
+        LocalDateTime startTime = null;
+        if (!"null".equals(parts[6])) {
+            startTime = LocalDateTime.parse(parts[6]);
+        }
         int epicId = -1;
 
 

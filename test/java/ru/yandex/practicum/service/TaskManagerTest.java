@@ -66,7 +66,6 @@ abstract class TaskManagerTest<T extends TaskManager> {
         taskManager.addTask(subtask1);
         taskManager.addTask(subtask2);
 
-        taskManager.updateEpicFields(epic);
         Epic loadedEpic = (Epic) taskManager.getTaskById(epicId);
         assertEquals(Status.IN_PROGRESS, loadedEpic.getStatus(), "Статус эпика должен быть IN_PROGRESS.");
     }

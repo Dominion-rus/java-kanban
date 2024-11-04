@@ -37,7 +37,7 @@ public interface TaskManager {
 
     List<Task> getHistory(); // Получение истории
 
-    void updateEpicFields(Epic epic);
+    List<Task> getPrioritizedTasks();
 
 }
 
