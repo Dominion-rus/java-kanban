@@ -28,6 +28,9 @@ public class InMemoryHistoryManager implements HistoryManager {
 
     @Override
     public void add(Task task) {
+        if (task == null) {
+            return; // Если задача равна null, просто выходим из метода
+        }
         // Удаляем задачу из списка, если она уже существует
         remove(task.getId());
 

@@ -7,6 +7,9 @@ import ru.yandex.practicum.model.Task;
 import ru.yandex.practicum.service.Managers;
 import ru.yandex.practicum.service.TaskManager;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+
 import static ru.yandex.practicum.utils.PrintManager.printAllTasks;
 import static ru.yandex.practicum.utils.PrintManager.printEpicWithSubtasks;
 
@@ -18,20 +21,26 @@ public class Main {
         TaskManager tracker = Managers.getDefault();
 
         // Создание обычных задач
-        Task task1 = new Task("Сходить в магазин", "Купить продукты", Status.NEW);
+        Task task1 = new Task("Сходить в магазин", "Купить продукты", Status.NEW,
+                Duration.ofMinutes(30), LocalDateTime.of(2024, 11, 1, 9, 0));
         tracker.addTask(task1);
 
-        Task task2 = new Task("Выйти из магазина", "Съесть продукты", Status.NEW);
+        Task task2 = new Task("Выйти из магазина", "Съесть продукты", Status.NEW,
+                Duration.ofMinutes(15), LocalDateTime.of(2024, 11, 1, 10, 0));
         tracker.addTask(task2);
 
         // Создание эпика и подзадач
         Epic epic = new Epic("Переезд", "Организация переезда");
         int epicId = tracker.addTask(epic);
 
-        Subtask subtask1 = new Subtask("Упаковка вещей", "Упаковать все вещи", Status.NEW, epicId);
+        Subtask subtask1 = new Subtask("Упаковка вещей", "Упаковать все вещи",
+                Status.NEW, epicId, Duration.ofMinutes(120),
+                LocalDateTime.of(2024, 11, 1, 11, 0));
         tracker.addTask(subtask1);
 
-        Subtask subtask2 = new Subtask("Аренда грузовика", "Арендовать грузовик для перевозки", Status.NEW, epicId);
+        Subtask subtask2 = new Subtask("Аренда грузовика", "Арендовать грузовик для перевозки",
+                Status.NEW, epicId, Duration.ofMinutes(60),
+                LocalDateTime.of(2024, 11, 1, 14, 0));
         tracker.addTask(subtask2);
 
         // Печать всех задач после их добавления
