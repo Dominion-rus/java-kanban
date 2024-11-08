@@ -1,9 +1,6 @@
 package ru.yandex.practicum.service;
 
-import ru.yandex.practicum.model.Epic;
-import ru.yandex.practicum.model.Status;
-import ru.yandex.practicum.model.Subtask;
-import ru.yandex.practicum.model.Task;
+import ru.yandex.practicum.model.*;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -93,27 +90,15 @@ public class InMemoryTaskManager implements TaskManager {
     }
 
     protected void updateEpicFields(Epic epic) {
-        List<Subtask> subtasks = getSubtasksForEpic(epic.getId());
-
-        if (subtasks.isEmpty()) {
-            epic.setDuration(null);
-            epic.setStartTime(null);
-            epic.setEndTime(null);
-            return;
-        }
-
         Duration totalDuration = null;
         LocalDateTime earliestStartTime = null;
         LocalDateTime latestEndTime = null;
 
-        // Рассчитываем общую продолжительность
-        for (Subtask subtask : subtasks) {
+        // Рассчитываем общие значения на основе подзадач
+        for (Subtask subtask : getSubtasksForEpic(epic.getId())) {
             if (subtask.getDuration() != null) {
-                if (totalDuration == null) {
-                    totalDuration = subtask.getDuration();
-                } else {
-                    totalDuration = totalDuration.plus(subtask.getDuration());
-                }
+                totalDuration = (totalDuration == null) ? subtask.getDuration() : totalDuration.
+                        plus(subtask.getDuration());
             }
 
             if (subtask.getStartTime() != null) {
@@ -129,6 +114,7 @@ public class InMemoryTaskManager implements TaskManager {
             }
         }
 
+        // Устанавливаем значения в эпик
         epic.setDuration(totalDuration);
         epic.setStartTime(earliestStartTime);
         epic.setEndTime(latestEndTime);
@@ -236,14 +222,16 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public void updateTask(Task updatedTask) {
-        // Удаляем старую версию задачи из отсортированного списка
-        Task oldTask = tasks.get(updatedTask.getId());
-        if (oldTask != null) {
-            prioritizedTasks.remove(oldTask);
+        // Удаляем старую версию задачи из отсортированного списка, если это не эпик
+        if (updatedTask.getType() != TaskType.EPIC) {
+            Task oldTask = getTaskById(updatedTask.getId());
+            if (oldTask != null) {
+                prioritizedTasks.remove(oldTask);
+            }
         }
 
-        // Проверка на пересечение временных интервалов
-        if (hasOverlappingTasks(updatedTask)) {
+        // Проверка на пересечение временных интервалов, если это не эпик
+        if (updatedTask.getType() != TaskType.EPIC && hasOverlappingTasks(updatedTask)) {
             throw new IllegalArgumentException("Обновленная задача пересекается по времени выполнения " +
                     "с существующей задачей.");
         }
@@ -258,21 +246,26 @@ public class InMemoryTaskManager implements TaskManager {
                     updateEpicStatus(epic);
                     updateEpicFields(epic);
                 }
+                // Добавляем обновлённую подзадачу в отсортированный список
+                prioritizedTasks.add(updatedTask);
                 break;
+
             case EPIC:
                 epics.put(updatedTask.getId(), (Epic) updatedTask);
                 updateEpicStatus((Epic) updatedTask);
                 updateEpicFields((Epic) updatedTask);
+                // Эпики не добавляются в отсортированный список
                 break;
+
             case TASK:
                 tasks.put(updatedTask.getId(), updatedTask);
+                // Добавляем обновлённую задачу в отсортированный список
+                prioritizedTasks.add(updatedTask);
                 break;
+
             default:
                 throw new IllegalArgumentException("Неизвестный тип задачи: " + updatedTask.getType());
         }
-
-        // Добавляем обновленную задачу в отсортированный список
-        prioritizedTasks.add(updatedTask);
     }
 
     @Override
