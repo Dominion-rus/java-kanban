@@ -97,8 +97,8 @@ public class InMemoryTaskManager implements TaskManager {
         // Рассчитываем общие значения на основе подзадач
         for (Subtask subtask : getSubtasksForEpic(epic.getId())) {
             if (subtask.getDuration() != null) {
-                totalDuration = (totalDuration == null) ? subtask.getDuration() : totalDuration.
-                        plus(subtask.getDuration());
+                totalDuration = (totalDuration == null) ? subtask.getDuration() : totalDuration
+                        .plus(subtask.getDuration());
             }
 
             if (subtask.getStartTime() != null) {
