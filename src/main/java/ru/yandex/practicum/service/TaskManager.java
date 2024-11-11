@@ -37,8 +37,13 @@ public interface TaskManager {
 
     List<Task> getHistory(); // Получение истории
 
-    List<Task> getPrioritizedTasks();
+    int addSubtask(Subtask subtask);
 
+    int addEpic(Epic epic);
+
+    Epic getEpicById(int epicId);
+
+    List<Task> getPrioritizedTasks();
 }
 
 

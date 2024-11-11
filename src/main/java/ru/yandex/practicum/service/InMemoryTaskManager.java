@@ -350,8 +350,8 @@ public class InMemoryTaskManager implements TaskManager {
         }
     }
 
-
-    protected Epic getEpicById(int epicId) {
+    @Override
+    public Epic getEpicById(int epicId) {
         return epics.get(epicId);
     }
 
@@ -370,7 +370,7 @@ public class InMemoryTaskManager implements TaskManager {
     public int addEpic(Epic epic) {
         return addTask(epic);
     }
-
+    @Override
     public int addSubtask(Subtask subtask) {
         if (hasOverlappingTasks(subtask)) {
             throw new IllegalArgumentException("Новая задача пересекается по времени выполнения с существующей задачей.");
@@ -378,7 +378,7 @@ public class InMemoryTaskManager implements TaskManager {
         prioritizedTasks.add(subtask);
         return addTask(subtask);
     }
-
+    @Override
     public List<Task> getPrioritizedTasks() {
         return new ArrayList<>(prioritizedTasks);
     }
