@@ -370,6 +370,7 @@ public class InMemoryTaskManager implements TaskManager {
     public int addEpic(Epic epic) {
         return addTask(epic);
     }
+
     @Override
     public int addSubtask(Subtask subtask) {
         if (hasOverlappingTasks(subtask)) {
@@ -378,6 +379,7 @@ public class InMemoryTaskManager implements TaskManager {
         prioritizedTasks.add(subtask);
         return addTask(subtask);
     }
+
     @Override
     public List<Task> getPrioritizedTasks() {
         return new ArrayList<>(prioritizedTasks);
