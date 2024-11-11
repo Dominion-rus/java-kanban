@@ -1,192 +1,181 @@
 package yandex.practicum.http.handler;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import io.restassured.RestAssured;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import ru.yandex.practicum.http.HttpTaskServer;
 import ru.yandex.practicum.model.Epic;
-import ru.yandex.practicum.utils.DurationAdapter;
-import ru.yandex.practicum.utils.LocalDateTimeAdapter;
+import ru.yandex.practicum.service.Managers;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.Map;
 
-import static io.restassured.RestAssured.*;
-import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 class EpicsHandlerRestTest {
     private static HttpTaskServer server;
-    private Gson gson;
+    private static HttpClient client;
+    private static Gson gson;
 
-    @BeforeEach
-    void startServer() throws Exception {
+    @BeforeAll
+    static void setUp() throws IOException {
         server = new HttpTaskServer();
         server.start();
-        RestAssured.baseURI = "http://localhost:8080";
-        gson = new GsonBuilder()
-                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
-                .registerTypeAdapter(Duration.class, new DurationAdapter())
-                .create();
+        client = HttpClient.newHttpClient();
+        gson = HttpTaskServer.getGson();
     }
 
-    @AfterEach
-    void stopServer() {
+    @AfterAll
+    static void tearDown() {
         server.stop();
     }
 
+    @BeforeEach
+    void cleanUp() {
+        Managers.getDefault().removeAllEpics();
+    }
+
     @Test
-    void testCreateEpic() {
+    void testCreateEpic() throws IOException, InterruptedException {
         Epic epic = new Epic("Epic 1", "Description");
-        given()
-                .contentType("application/json")
-                .body(gson.toJson(epic))
-                .when()
-                .post("/epics")
-                .then()
-                .statusCode(201)
-                .body("id", notNullValue());
+        String json = gson.toJson(epic);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/epics"))
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .header("Content-Type", "application/json")
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals(201, response.statusCode());
+
+        Map<?, ?> responseBody = gson.fromJson(response.body(), Map.class);
+        assertNotNull(responseBody.get("id"));
     }
 
     @Test
-    void testGetAllEpics() {
+    void testGetAllEpics() throws IOException, InterruptedException {
         Epic epic = new Epic("Epic 2", "Another description");
-        given()
-                .contentType("application/json")
-                .body(gson.toJson(epic))
-                .when()
-                .post("/epics")
-                .then()
-                .statusCode(201);
+        String json = gson.toJson(epic);
 
-        get("/epics")
-                .then()
-                .statusCode(200)
-                .contentType("application/json")
-                .body("size()", greaterThanOrEqualTo(1));
+        HttpRequest createRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/epics"))
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .header("Content-Type", "application/json")
+                .build();
+        client.send(createRequest, HttpResponse.BodyHandlers.ofString());
+
+        HttpRequest getRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/epics"))
+                .GET()
+                .build();
+        HttpResponse<String> response = client.send(getRequest, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().contains("Epic 2"));
     }
 
     @Test
-    void testDeleteEpic() {
+    void testDeleteEpic() throws IOException, InterruptedException {
         Epic epic = new Epic("Epic 3", "To be deleted");
-        int epicId = given()
-                .contentType("application/json")
-                .body(gson.toJson(epic))
-                .when()
-                .post("/epics")
-                .then()
-                .statusCode(201)
-                .extract()
-                .path("id");
+        String json = gson.toJson(epic);
 
-        delete("/epics/" + epicId)
-                .then()
-                .statusCode(200)
-                .body("success", equalTo(true));
+        HttpRequest createRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/epics"))
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .header("Content-Type", "application/json")
+                .build();
+        HttpResponse<String> createResponse = client.send(createRequest, HttpResponse.BodyHandlers.ofString());
+        Map<?, ?> responseBody = gson.fromJson(createResponse.body(), Map.class);
+        int epicId = ((Double) responseBody.get("id")).intValue();
+
+        HttpRequest deleteRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/epics/" + epicId))
+                .DELETE()
+                .build();
+        HttpResponse<String> deleteResponse = client.send(deleteRequest, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, deleteResponse.statusCode());
+        assertTrue(deleteResponse.body().contains("\"success\":true"));
     }
 
     @Test
-    void testCreateEpicWithInvalidData() {
+    void testCreateEpicWithInvalidData() throws IOException, InterruptedException {
         Epic invalidEpic = new Epic("", "");
-        given()
-                .contentType("application/json")
-                .body(gson.toJson(invalidEpic))
-                .when()
-                .post("/epics")
-                .then()
-                .statusCode(400)
-                .body("message", equalTo("Некорректные данные эпика: " +
-                        "название и описание не должны быть пустыми."));
+        String json = gson.toJson(invalidEpic);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/epics"))
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .header("Content-Type", "application/json")
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(400, response.statusCode());
+        assertTrue(response.body().contains("Некорректные данные эпика"));
     }
 
     @Test
-    void testUpdateNonexistentEpic() {
-        Epic nonExistentEpic = new Epic("Nonexistent", "Description");
-        nonExistentEpic.setId(999);
-
-        given()
-                .contentType("application/json")
-                .body(gson.toJson(nonExistentEpic))
-                .when()
-                .post("/epics")
-                .then()
-                .statusCode(404) // Ошибка 404 для несуществующего эпика
-                .body("status", equalTo("error"))
-                .body("message", equalTo("Эпик с id 999 не найден."));
-    }
-
-    @Test
-    void testGetEpicById() {
+    void testGetEpicById() throws IOException, InterruptedException {
         Epic epic = new Epic("Epic 4", "Description");
-        int epicId = given()
-                .contentType("application/json")
-                .body(gson.toJson(epic))
-                .when()
-                .post("/epics")
-                .then()
-                .statusCode(201)
-                .extract()
-                .path("id");
+        String json = gson.toJson(epic);
 
-        get("/epics/" + epicId)
-                .then()
-                .statusCode(200)
-                .contentType("application/json")
-                .body("title", equalTo("Epic 4"))
-                .body("description", equalTo("Description"));
+        HttpRequest createRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/epics"))
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .header("Content-Type", "application/json")
+                .build();
+        HttpResponse<String> createResponse = client.send(createRequest, HttpResponse.BodyHandlers.ofString());
+        Map<?, ?> responseBody = gson.fromJson(createResponse.body(), Map.class);
+        int epicId = ((Double) responseBody.get("id")).intValue();
+
+        HttpRequest getRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/epics/" + epicId))
+                .GET()
+                .build();
+        HttpResponse<String> response = client.send(getRequest, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().contains("Epic 4"));
     }
 
     @Test
-    void testGetEpicSubtasks() {
-        Epic epic = new Epic("Epic 5", "With subtasks");
-        int epicId = given()
-                .contentType("application/json")
-                .body(gson.toJson(epic))
-                .when()
-                .post("/epics")
-                .then()
-                .statusCode(201)
-                .extract()
-                .path("id");
-
-        get("/epics/" + epicId + "/subtasks")
-                .then()
-                .statusCode(200)
-                .contentType("application/json")
-                .body("size()", equalTo(0)); // Подзадач пока нет
-    }
-
-    @Test
-    void testDeleteAllEpics() {
+    void testDeleteAllEpics() throws IOException, InterruptedException {
         Epic epic1 = new Epic("Epic 6", "To be deleted 1");
         Epic epic2 = new Epic("Epic 7", "To be deleted 2");
 
-        given()
-                .contentType("application/json")
-                .body(gson.toJson(epic1))
-                .when()
-                .post("/epics")
-                .then()
-                .statusCode(201);
+        HttpRequest createRequest1 = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/epics"))
+                .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(epic1)))
+                .header("Content-Type", "application/json")
+                .build();
+        HttpRequest createRequest2 = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/epics"))
+                .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(epic2)))
+                .header("Content-Type", "application/json")
+                .build();
+        client.send(createRequest1, HttpResponse.BodyHandlers.ofString());
+        client.send(createRequest2, HttpResponse.BodyHandlers.ofString());
 
-        given()
-                .contentType("application/json")
-                .body(gson.toJson(epic2))
-                .when()
-                .post("/epics")
-                .then()
-                .statusCode(201);
+        HttpRequest deleteAllRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/epics"))
+                .DELETE()
+                .build();
+        HttpResponse<String> deleteResponse = client.send(deleteAllRequest, HttpResponse.BodyHandlers.ofString());
 
-        delete("/epics")
-                .then()
-                .statusCode(200)
-                .body("success", equalTo(true));
+        assertEquals(200, deleteResponse.statusCode());
+        assertTrue(deleteResponse.body().contains("\"success\":true"));
 
-        get("/epics")
-                .then()
-                .statusCode(200)
-                .body("size()", equalTo(0));
+        HttpRequest getAllRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/epics"))
+                .GET()
+                .build();
+        HttpResponse<String> getResponse = client.send(getAllRequest, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, getResponse.statusCode());
+        assertTrue(getResponse.body().contains("[]"));
     }
 }

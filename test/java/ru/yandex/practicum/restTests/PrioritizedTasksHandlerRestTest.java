@@ -1,76 +1,84 @@
 package yandex.practicum.http.handler;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import io.restassured.RestAssured;
+import com.google.gson.reflect.TypeToken;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.http.HttpTaskServer;
 import ru.yandex.practicum.model.Status;
 import ru.yandex.practicum.model.Task;
-import ru.yandex.practicum.utils.DurationAdapter;
-import ru.yandex.practicum.utils.LocalDateTimeAdapter;
 
+import java.lang.reflect.Type;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 
-import static io.restassured.RestAssured.get;
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-class PrioritizedTasksHandlerRestTest {
-    private static HttpTaskServer server;
+public class PrioritizedTasksHandlerRestTest {
+    private HttpTaskServer server;
     private Gson gson;
+    private HttpClient client;
 
     @BeforeEach
-    void startServer() throws Exception {
+    public void setUp() throws Exception {
         server = new HttpTaskServer();
+        gson = HttpTaskServer.getGson();
+        client = HttpClient.newHttpClient();
         server.start();
-        RestAssured.baseURI = "http://localhost:8080";
-        gson = new GsonBuilder()
-                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
-                .registerTypeAdapter(Duration.class, new DurationAdapter())
-                .create();
-
     }
 
     @AfterEach
-    void stopServer() {
+    public void tearDown() {
         server.stop();
     }
 
     @Test
-    void testGetPrioritizedTasks() {
+    public void testGetPrioritizedTasks() throws Exception {
         Task task1 = new Task("Task 1", "Description", Status.NEW, Duration.ofMinutes(30),
                 LocalDateTime.now().plusHours(1));
         Task task2 = new Task("Task 2", "Description", Status.NEW, Duration.ofMinutes(15),
                 LocalDateTime.now());
 
-        given()
-                .contentType("application/json")
-                .body(gson.toJson(task1))
-                .when()
-                .post("/tasks")
-                .then()
-                .statusCode(201);
+        HttpRequest requestTask1 = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/tasks"))
+                .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(task1)))
+                .header("Content-Type", "application/json")
+                .build();
 
-        given()
-                .contentType("application/json")
-                .body(gson.toJson(task2))
-                .when()
-                .post("/tasks")
-                .then()
-                .statusCode(201);
+        HttpRequest requestTask2 = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/tasks"))
+                .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(task2)))
+                .header("Content-Type", "application/json")
+                .build();
 
-        get("/prioritized")
-                .then()
-                .statusCode(200)
-                .contentType("application/json")
-                .body("size()", greaterThanOrEqualTo(2)) // Проверяем, что задачи есть
-                .body("[0].title", equalTo("Task 2")) // Первая задача по приоритету
-                .body("[1].title", equalTo("Task 1")); // Вторая задача по приоритету
+        client.send(requestTask1, HttpResponse.BodyHandlers.ofString());
+        client.send(requestTask2, HttpResponse.BodyHandlers.ofString());
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/prioritized"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+
+        Type taskListType = new TypeToken<List<Task>>() {}.getType();
+        List<Task> prioritizedTasks = gson.fromJson(response.body(), taskListType);
+
+        assertNotNull(prioritizedTasks, "Приоритетные задачи не возвращаются.");
+        assertEquals(2, prioritizedTasks.size(), "Некорректное количество задач.");
+        assertEquals("Task 2", prioritizedTasks.get(0).getTitle(), "Первая задача " +
+                "не соответствует приоритету.");
+        assertEquals("Task 1", prioritizedTasks.get(1).getTitle(), "Вторая задача " +
+                "не соответствует приоритету.");
     }
-}
 
+}

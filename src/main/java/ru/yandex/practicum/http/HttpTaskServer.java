@@ -1,12 +1,18 @@
 package ru.yandex.practicum.http;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.HttpServer;
 import ru.yandex.practicum.http.handler.*;
 import ru.yandex.practicum.service.Managers;
 import ru.yandex.practicum.service.TaskManager;
+import ru.yandex.practicum.utils.DurationAdapter;
+import ru.yandex.practicum.utils.LocalDateTimeAdapter;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.time.LocalDateTime;
 
 public class HttpTaskServer {
     private static final int PORT = 8080;
@@ -32,6 +38,15 @@ public class HttpTaskServer {
     public void stop() {
         System.out.println("HTTP сервер остановлен.");
         server.stop(0);
+    }
+
+    private static final Gson gson = new GsonBuilder()
+            .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
+            .registerTypeAdapter(Duration.class, new DurationAdapter())
+            .create();
+
+    public static Gson getGson() {
+        return gson;
     }
 
     public static void main(String[] args) {

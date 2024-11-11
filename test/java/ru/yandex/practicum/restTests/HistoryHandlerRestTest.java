@@ -1,66 +1,77 @@
 package yandex.practicum.http.handler;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import io.restassured.RestAssured;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.http.HttpTaskServer;
 import ru.yandex.practicum.model.Status;
 import ru.yandex.practicum.model.Task;
-import ru.yandex.practicum.utils.DurationAdapter;
-import ru.yandex.practicum.utils.LocalDateTimeAdapter;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 
-import static io.restassured.RestAssured.get;
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.junit.jupiter.api.Assertions.*;
 
 class HistoryHandlerRestTest {
-    private static HttpTaskServer server;
+    private HttpTaskServer server;
     private Gson gson;
+    private HttpClient client;
 
     @BeforeEach
-    void startServer() throws Exception {
+    public void setUp() throws Exception {
         server = new HttpTaskServer();
+        gson = HttpTaskServer.getGson();
+        client = HttpClient.newHttpClient();
         server.start();
-        RestAssured.baseURI = "http://localhost:8080";
-        gson = new GsonBuilder()
-                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
-                .registerTypeAdapter(Duration.class, new DurationAdapter())
-                .create();
-
     }
 
     @AfterEach
-    void stopServer() {
+    public void tearDown() {
         server.stop();
     }
 
     @Test
-    void testGetHistory() {
+    void testGetHistory() throws IOException, InterruptedException {
         Task task = new Task("Task 1", "Description", Status.NEW,
                 Duration.ofMinutes(30), LocalDateTime.now());
-        given()
-                .contentType("application/json")
-                .body(gson.toJson(task))
-                .when()
-                .post("/tasks")
-                .then()
-                .statusCode(201);
+        String taskJson = gson.toJson(task);
 
-        get("/tasks/1")
-                .then()
-                .statusCode(200);
+        HttpRequest createTaskRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/tasks"))
+                .POST(HttpRequest.BodyPublishers.ofString(taskJson))
+                .header("Content-Type", "application/json")
+                .build();
+        HttpResponse<String> createTaskResponse = client.send(createTaskRequest, HttpResponse.BodyHandlers.ofString());
 
-        get("/history")
-                .then()
-                .statusCode(200)
-                .contentType("application/json")
-                .body("size()", greaterThanOrEqualTo(1));
+        assertEquals(201, createTaskResponse.statusCode(), "Задача должна успешно создаться.");
+
+        HttpRequest getTaskRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/tasks/1"))
+                .GET()
+                .build();
+        HttpResponse<String> getTaskResponse = client.send(getTaskRequest, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, getTaskResponse.statusCode(), "Должно вернуться 200 для существующей " +
+                "задачи.");
+
+        HttpRequest getHistoryRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/history"))
+                .GET()
+                .build();
+        HttpResponse<String> getHistoryResponse = client.send(getHistoryRequest, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, getHistoryResponse.statusCode(), "История должна возвращаться с кодом 200.");
+
+        List<?> history = gson.fromJson(getHistoryResponse.body(), List.class);
+        assertNotNull(history, "История не должна быть null.");
+        assertFalse(history.isEmpty(), "История не должна быть пустой.");
     }
 
 }

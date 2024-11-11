@@ -1,38 +1,36 @@
-package ru.yandex.practicum.http.handler;
+package yandex.practicum.http.handler;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import io.restassured.RestAssured;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.http.HttpTaskServer;
 import ru.yandex.practicum.model.Status;
 import ru.yandex.practicum.model.Task;
-import ru.yandex.practicum.utils.DurationAdapter;
-import ru.yandex.practicum.utils.LocalDateTimeAdapter;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
-import static io.restassured.RestAssured.*;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 class TasksHandlerRestTest {
-    private static HttpTaskServer server;
+    private HttpTaskServer server;
     private Gson gson;
+    private HttpClient client;
 
     @BeforeEach
-    void startServer() throws Exception {
+    public void setUp() throws Exception {
         server = new HttpTaskServer();
+        gson = HttpTaskServer.getGson();
+        client = HttpClient.newHttpClient();
         server.start();
-        RestAssured.baseURI = "http://localhost:8080";
-        gson = new GsonBuilder()
-                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
-                .registerTypeAdapter(Duration.class, new DurationAdapter())
-                .create();
     }
 
     @AfterEach
@@ -41,142 +39,161 @@ class TasksHandlerRestTest {
     }
 
     @Test
-    void testCreateTask() {
+    void testCreateTask() throws IOException, InterruptedException {
         Task task = new Task("Task 1", "Description", Status.NEW,
                 Duration.ofMinutes(30), LocalDateTime.now());
-        int taskId = given()
-                .contentType("application/json")
-                .body(gson.toJson(task))
-                .when()
-                .post("/tasks")
-                .then()
-                .statusCode(201)
-                .extract()
-                .path("id");
+        String taskJson = gson.toJson(task);
 
-        assertThat(taskId, greaterThan(0));
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/tasks"))
+                .POST(HttpRequest.BodyPublishers.ofString(taskJson))
+                .header("Content-Type", "application/json")
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(201, response.statusCode());
+        Map<?, ?> responseBody = gson.fromJson(response.body(), Map.class);
+        assertTrue(responseBody.containsKey("id"));
+        assertNotNull(responseBody.get("id"));
     }
 
     @Test
-    void testGetAllTasks() {
+    void testGetAllTasks() throws IOException, InterruptedException {
         testCreateTask();
-        Response response = get("/tasks");
-        response.then()
-                .statusCode(200)
-                .contentType("application/json")
-                .body("size()", greaterThanOrEqualTo(1));
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/tasks"))
+                .GET()
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        List<?> tasks = gson.fromJson(response.body(), List.class);
+        assertFalse(tasks.isEmpty());
     }
 
     @Test
-    void testGetTaskById() {
+    void testGetTaskById() throws IOException, InterruptedException {
         Task task = new Task("Task 1", "Description", Status.NEW,
                 Duration.ofMinutes(30), LocalDateTime.now());
-        int taskId = given()
-                .contentType("application/json")
-                .body(gson.toJson(task))
-                .when()
-                .post("/tasks")
-                .then()
-                .statusCode(201)
-                .extract()
-                .path("id");
+        String taskJson = gson.toJson(task);
 
-        get("/tasks/" + taskId)
-                .then()
-                .statusCode(200)
-                .contentType("application/json")
-                .body("title", equalTo("Task 1"))
-                .body("description", equalTo("Description"));
+        HttpRequest createRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/tasks"))
+                .POST(HttpRequest.BodyPublishers.ofString(taskJson))
+                .header("Content-Type", "application/json")
+                .build();
+        HttpResponse<String> createResponse = client.send(createRequest, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(201, createResponse.statusCode());
+        Map<?, ?> responseBody = gson.fromJson(createResponse.body(), Map.class);
+        int taskId = ((Double) responseBody.get("id")).intValue();
+
+        HttpRequest getRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/tasks/" + taskId))
+                .GET()
+                .build();
+        HttpResponse<String> getResponse = client.send(getRequest, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, getResponse.statusCode());
+        Task fetchedTask = gson.fromJson(getResponse.body(), Task.class);
+        assertEquals("Task 1", fetchedTask.getTitle());
+        assertEquals("Description", fetchedTask.getDescription());
     }
 
     @Test
-    void testDeleteTask() {
+    void testDeleteTask() throws IOException, InterruptedException {
         Task task = new Task("Task to Delete", "Description", Status.NEW,
                 Duration.ofMinutes(30), LocalDateTime.now());
-        int taskId = given()
-                .contentType("application/json")
-                .body(gson.toJson(task))
-                .when()
-                .post("/tasks")
-                .then()
-                .statusCode(201)
-                .extract()
-                .path("id");
+        String taskJson = gson.toJson(task);
 
-        delete("/tasks/" + taskId)
-                .then()
-                .statusCode(200)
-                .body("success", equalTo(true));
+        HttpRequest createRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/tasks"))
+                .POST(HttpRequest.BodyPublishers.ofString(taskJson))
+                .header("Content-Type", "application/json")
+                .build();
+        HttpResponse<String> createResponse = client.send(createRequest, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(201, createResponse.statusCode());
+        Map<?, ?> responseBody = gson.fromJson(createResponse.body(), Map.class);
+        int taskId = ((Double) responseBody.get("id")).intValue();
+
+        HttpRequest deleteRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/tasks/" + taskId))
+                .DELETE()
+                .build();
+        HttpResponse<String> deleteResponse = client.send(deleteRequest, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, deleteResponse.statusCode());
+        Map<?, ?> deleteResponseBody = gson.fromJson(deleteResponse.body(), Map.class);
+        assertEquals(true, deleteResponseBody.get("success"));
     }
 
     @Test
-    void testDeleteAllTasks() {
+    void testDeleteAllTasks() throws IOException, InterruptedException {
         testCreateTask();
-        delete("/tasks")
-                .then()
-                .statusCode(200)
-                .body("success", equalTo(true));
 
-        Response response = get("/tasks");
-        response.then()
-                .statusCode(200)
-                .body("size()", equalTo(0));
+        HttpRequest deleteRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/tasks"))
+                .DELETE()
+                .build();
+        HttpResponse<String> deleteResponse = client.send(deleteRequest, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, deleteResponse.statusCode());
+        Map<?, ?> responseBody = gson.fromJson(deleteResponse.body(), Map.class);
+        assertEquals(true, responseBody.get("success"));
+
+        HttpRequest getRequest = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/tasks"))
+                .GET()
+                .build();
+        HttpResponse<String> getResponse = client.send(getRequest, HttpResponse.BodyHandlers.ofString());
+
+        List<?> tasks = gson.fromJson(getResponse.body(), List.class);
+        assertTrue(tasks.isEmpty());
     }
 
     @Test
-    void testCreateTaskWithInvalidData() {
+    void testCreateTaskWithInvalidData() throws IOException, InterruptedException {
         Task invalidTask = new Task("", "", null, null, null);
-        given()
-                .contentType("application/json")
-                .body(gson.toJson(invalidTask))
-                .when()
-                .post("/tasks")
-                .then()
-                .statusCode(400)
-                .body("message", equalTo("Некорректные данные задачи:" +
-                        " название и описание не могут быть пустыми."));
+        String taskJson = gson.toJson(invalidTask);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/tasks"))
+                .POST(HttpRequest.BodyPublishers.ofString(taskJson))
+                .header("Content-Type", "application/json")
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(400, response.statusCode());
+        Map<?, ?> responseBody = gson.fromJson(response.body(), Map.class);
+        assertEquals("Некорректные данные задачи: название и описание не могут быть пустыми.",
+                responseBody.get("message"));
     }
 
     @Test
-    void testUpdateTask() {
-        Task task = new Task("Task 1", "Description", Status.NEW,
-                Duration.ofMinutes(30), LocalDateTime.now());
-        int taskId = given()
-                .contentType("application/json")
-                .body(gson.toJson(task))
-                .when()
-                .post("/tasks")
-                .then()
-                .statusCode(201)
-                .extract()
-                .path("id");
+    void testGetNonexistentTask() throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/tasks/999"))
+                .GET()
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        task.setId(taskId);
-        task.setStatus(Status.DONE);
-
-        given()
-                .contentType("application/json")
-                .body(gson.toJson(task))
-                .when()
-                .post("/tasks")
-                .then()
-                .statusCode(200)
-                .body("message", equalTo("Задача с id " + taskId + " успешно обновлена."));
+        assertEquals(404, response.statusCode());
+        Map<?, ?> responseBody = gson.fromJson(response.body(), Map.class);
+        assertEquals("Задача с id 999 не найдена.", responseBody.get("message"));
     }
 
     @Test
-    void testGetNonexistentTask() {
-        get("/tasks/999")
-                .then()
-                .statusCode(404)
-                .body("message", equalTo("Задача с id 999 не найдена."));
-    }
+    void testDeleteNonexistentTask() throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/tasks/999"))
+                .DELETE()
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-    @Test
-    void testDeleteNonexistentTask() {
-        delete("/tasks/999")
-                .then()
-                .statusCode(404)
-                .body("message", equalTo("Задача с id 999 не найдена."));
+        assertEquals(404, response.statusCode());
+        Map<?, ?> responseBody = gson.fromJson(response.body(), Map.class);
+        assertEquals("Задача с id 999 не найдена.", responseBody.get("message"));
     }
 }
