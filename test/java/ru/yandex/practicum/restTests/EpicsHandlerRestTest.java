@@ -34,9 +34,14 @@ class EpicsHandlerRestTest {
     }
 
     @BeforeEach
-    void cleanUp() {
-        Managers.getDefault().removeAllEpics();
+    void cleanUp() throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/epics"))
+                .DELETE()
+                .build();
+        client.send(request, HttpResponse.BodyHandlers.ofString());
     }
+
 
     @Test
     void testCreateEpic() throws IOException, InterruptedException {
